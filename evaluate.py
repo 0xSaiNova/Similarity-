@@ -52,6 +52,14 @@ class LabelMetrics:
 
 
 @dataclass(frozen=True)
+class BinaryMetrics:
+    """Precision, recall, F1 for the collapsed CANDIDATE vs NO_MATCH problem."""
+    precision: float
+    recall: float
+    f1: float
+
+
+@dataclass(frozen=True)
 class Report:
     """Full evaluation report."""
     total: int
@@ -60,6 +68,8 @@ class Report:
     confusion: dict[str, dict[str, int]]
     mae: float
     worst: list[PairResult]
+    binary: BinaryMetrics
+    roc_auc: float
 
 
 def _validate_pair(raw: dict, line: int) -> GoldPair:
@@ -117,6 +127,30 @@ def _confusion(results: Sequence[PairResult]) -> dict[str, dict[str, int]]:
     return matrix
 
 
+def _is_candidate(label: str) -> bool:
+    return label != "NO_MATCH"
+
+
+def _binary_metrics(results: Sequence[PairResult]) -> BinaryMetrics:
+    tp = sum(1 for r in results if _is_candidate(r.predicted_label) and _is_candidate(r.gold_label))
+    fp = sum(1 for r in results if _is_candidate(r.predicted_label) and not _is_candidate(r.gold_label))
+    fn = sum(1 for r in results if not _is_candidate(r.predicted_label) and _is_candidate(r.gold_label))
+    precision = tp / (tp + fp) if tp + fp else 0.0
+    recall = tp / (tp + fn) if tp + fn else 0.0
+    f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+    return BinaryMetrics(precision, recall, f1)
+
+
+def _roc_auc(results: Sequence[PairResult]) -> float:
+    """ROC AUC of predicted_score for CANDIDATE vs NO_MATCH; NaN if only one class present."""
+    from sklearn.metrics import roc_auc_score
+    y_true = [1 if _is_candidate(r.gold_label) else 0 for r in results]
+    y_score = [r.predicted_score for r in results]
+    if len(set(y_true)) < 2:
+        return float("nan")
+    return float(roc_auc_score(y_true, y_score))
+
+
 def evaluate(gold: Sequence[GoldPair], config_path: str | Path | None = None) -> Report:
     """Score every gold pair directly and produce metrics."""
     weights, thresholds, penalties = load_config(config_path if config_path else "config.json")
@@ -153,6 +187,8 @@ def evaluate(gold: Sequence[GoldPair], config_path: str | Path | None = None) ->
         confusion=_confusion(results),
         mae=mae,
         worst=worst,
+        binary=_binary_metrics(results),
+        roc_auc=_roc_auc(results),
     )
 
 
@@ -174,6 +210,11 @@ def format_report(report: Report) -> str:
     for gold in LABELS:
         row = f"  {gold:<10}" + "".join(f"{report.confusion[gold][pred]:>10}" for pred in LABELS)
         lines.append(row)
+    lines.append("")
+    lines.append("Binary view (CANDIDATE = MATCH or PARTIAL vs NO_MATCH):")
+    b = report.binary
+    lines.append(f"  precision {b.precision:.3f}   recall {b.recall:.3f}   f1 {b.f1:.3f}")
+    lines.append(f"  ROC AUC of raw score: {report.roc_auc:.3f}")
     lines.append("")
     lines.append("Worst 10 mismatches:")
     lines.append(f"  {'id':>4} {'category':<28} {'phenomenon':<22} {'pred':>6} {'gold':>6} {'pred_label':<10} {'gold_label':<10}")

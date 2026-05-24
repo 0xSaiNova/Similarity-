@@ -8,12 +8,15 @@ import pytest
 
 from evaluate import (
     LABELS,
+    BinaryMetrics,
     GoldPair,
     LabelMetrics,
     PairResult,
     Report,
+    _binary_metrics,
     _confusion,
     _per_label_metrics,
+    _roc_auc,
     evaluate,
     load_gold,
 )
@@ -167,3 +170,81 @@ def test_evaluate_worst_sorted_by_score_delta_desc() -> None:
 def test_evaluate_empty_gold_raises() -> None:
     with pytest.raises(ValueError):
         evaluate([])
+
+
+def test_binary_metrics_perfect_predictions() -> None:
+    # 1 TP (MATCH/MATCH), 1 TP (PARTIAL/PARTIAL), 1 TN (NO_MATCH/NO_MATCH)
+    results = [
+        _result("MATCH", "MATCH"),
+        _result("PARTIAL", "PARTIAL"),
+        _result("NO_MATCH", "NO_MATCH"),
+    ]
+    b = _binary_metrics(results)
+    assert b.precision == 1.0
+    assert b.recall == 1.0
+    assert b.f1 == 1.0
+
+
+def test_binary_metrics_collapses_match_and_partial() -> None:
+    # predicted PARTIAL but gold MATCH counts as TP under collapse
+    results = [
+        _result("PARTIAL", "MATCH"),
+        _result("MATCH", "PARTIAL"),
+        _result("NO_MATCH", "NO_MATCH"),
+    ]
+    b = _binary_metrics(results)
+    assert b.precision == 1.0
+    assert b.recall == 1.0
+    assert b.f1 == 1.0
+
+
+def test_binary_metrics_counts_false_positives_and_negatives() -> None:
+    results = [
+        _result("MATCH", "NO_MATCH"),     # FP
+        _result("NO_MATCH", "PARTIAL"),   # FN
+        _result("PARTIAL", "MATCH"),      # TP
+        _result("NO_MATCH", "NO_MATCH"),  # TN
+    ]
+    b = _binary_metrics(results)
+    assert b.precision == pytest.approx(1 / 2)
+    assert b.recall == pytest.approx(1 / 2)
+    assert b.f1 == pytest.approx(0.5)
+
+
+def test_roc_auc_perfect_ranking() -> None:
+    # candidates score higher than non-candidates
+    results = [
+        _result("MATCH", "MATCH", pred_score=0.9),
+        _result("PARTIAL", "PARTIAL", pred_score=0.7),
+        _result("NO_MATCH", "NO_MATCH", pred_score=0.2),
+        _result("NO_MATCH", "NO_MATCH", pred_score=0.1),
+    ]
+    assert _roc_auc(results) == pytest.approx(1.0)
+
+
+def test_roc_auc_random_ranking_near_half() -> None:
+    # interleaved scores -> AUC around 0.5
+    results = [
+        _result("MATCH", "MATCH", pred_score=0.3),
+        _result("NO_MATCH", "NO_MATCH", pred_score=0.7),
+        _result("MATCH", "MATCH", pred_score=0.4),
+        _result("NO_MATCH", "NO_MATCH", pred_score=0.6),
+    ]
+    assert _roc_auc(results) == pytest.approx(0.0)  # perfectly inverted is also informative
+
+
+def test_roc_auc_single_class_returns_nan() -> None:
+    import math
+    results = [_result("MATCH", "MATCH"), _result("PARTIAL", "PARTIAL")]
+    auc = _roc_auc(results)
+    assert math.isnan(auc)
+
+
+def test_evaluate_includes_binary_and_auc() -> None:
+    gold = load_gold(GOLD_PATH)
+    report = evaluate(gold)
+    assert isinstance(report.binary, BinaryMetrics)
+    assert 0.0 <= report.binary.precision <= 1.0
+    assert 0.0 <= report.binary.recall <= 1.0
+    assert 0.0 <= report.binary.f1 <= 1.0
+    assert 0.0 <= report.roc_auc <= 1.0

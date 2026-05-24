@@ -1,10 +1,8 @@
 # Similarity
 
-Match a phrase against a list of candidates. Returns them ranked 0-1
-and labelled MATCH, PARTIAL, or NO_MATCH.
+Match a phrase against candidates. Returns them ranked 0 to 1 and labelled MATCH, PARTIAL, or NO_MATCH.
 
-Classical NLP only: TF-IDF, Jaccard, WordNet, char n-grams, word order,
-plus a negation gate. No neural nets, no API calls.
+Classical NLP only: TF-IDF, Jaccard, WordNet, char n-grams, word order, plus negation, antonym, and order gates. No neural nets, no API calls.
 
 ## Install
 
@@ -19,6 +17,8 @@ NLTK data downloads on first run.
     for r in m.match("a cat on a mat", k=3):
         print(r.score, r.label, r.candidate)
 
-## Tests
+## Evaluate, tune, test
 
+    python evaluate.py   # report on data/gold_pairs.json
+    python tune.py       # writes config.json only if cv beats default
     pytest
