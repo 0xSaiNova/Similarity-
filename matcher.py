@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from combiner import DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS, combine, load_config
+from combiner import DEFAULT_PENALTIES, DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS, combine, load_config
 from index import PhraseIndex
 from preprocess import build_phrase, detect_antonym_mismatch
 from signals import char_ngram_sim, detect_order_mismatch, jaccard, order_sim
@@ -50,8 +50,9 @@ class Matcher:
         if config_path is None:
             self.weights = dict(DEFAULT_WEIGHTS)
             self.thresholds = dict(DEFAULT_THRESHOLDS)
+            self.penalties = dict(DEFAULT_PENALTIES)
         else:
-            self.weights, self.thresholds = load_config(config_path)
+            self.weights, self.thresholds, self.penalties = load_config(config_path)
 
     def match(self, query: str, k: int = 20) -> list[MatchResult]:
         """Block to top-k candidates, score each, return sorted by score desc."""
@@ -65,7 +66,8 @@ class Matcher:
             ant_mismatch = detect_antonym_mismatch(query, cand)
             ord_mismatch = detect_order_mismatch(query_phrase.tokens, cand_phrase.tokens)
             score, label = combine(
-                signals, neg_mismatch, ant_mismatch, ord_mismatch, self.weights, self.thresholds,
+                signals, neg_mismatch, ant_mismatch, ord_mismatch,
+                self.weights, self.thresholds, self.penalties,
             )
             results.append(MatchResult(
                 cand, score, label, signals, neg_mismatch, ant_mismatch, ord_mismatch,

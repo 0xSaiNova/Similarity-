@@ -57,9 +57,11 @@ def test_combine_score_is_clamped_to_unit_interval() -> None:
 
 
 def test_load_config_missing_file_returns_defaults(tmp_path: Path) -> None:
-    weights, thresholds = load_config(tmp_path / "nope.json")
+    from combiner import DEFAULT_PENALTIES
+    weights, thresholds, penalties = load_config(tmp_path / "nope.json")
     assert weights == DEFAULT_WEIGHTS
     assert thresholds == DEFAULT_THRESHOLDS
+    assert penalties == DEFAULT_PENALTIES
 
 
 def test_load_config_reads_weights_and_thresholds(tmp_path: Path) -> None:
@@ -72,9 +74,27 @@ def test_load_config_reads_weights_and_thresholds(tmp_path: Path) -> None:
         "thresholds": {"low": 0.35, "high": 0.8},
     }
     path.write_text(json.dumps(payload))
-    weights, thresholds = load_config(path)
+    weights, thresholds, penalties = load_config(path)
     assert weights == payload["weights"]
     assert thresholds == payload["thresholds"]
+    # penalties fall back to defaults when omitted
+    from combiner import DEFAULT_PENALTIES
+    assert penalties == DEFAULT_PENALTIES
+
+
+def test_load_config_reads_penalties_when_present(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    payload = {
+        "weights": {
+            "surface": {"tfidf": 0.25, "jaccard": 0.25, "ngram": 0.25, "order": 0.25},
+            "semantic": {"wordnet": 0.5, "soft_overlap": 0.5},
+        },
+        "thresholds": {"low": 0.4, "high": 0.7},
+        "penalties": {"negation": 0.2, "antonym": 0.4, "order": 0.6},
+    }
+    path.write_text(json.dumps(payload))
+    _, _, penalties = load_config(path)
+    assert penalties == payload["penalties"]
 
 
 def test_combine_no_kwargs_uses_defaults() -> None:

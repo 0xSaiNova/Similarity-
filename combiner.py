@@ -14,10 +14,7 @@ DEFAULT_WEIGHTS: dict[str, dict[str, float]] = {
     "semantic": {name: 1.0 / len(SEMANTIC_SIGNALS) for name in SEMANTIC_SIGNALS},
 }
 DEFAULT_THRESHOLDS: dict[str, float] = {"low": 0.4, "high": 0.7}
-
-NEGATION_PENALTY: float = 0.3
-ANTONYM_PENALTY: float = 0.3
-ORDER_PENALTY: float = 0.5
+DEFAULT_PENALTIES: dict[str, float] = {"negation": 0.3, "antonym": 0.3, "order": 0.5}
 
 
 def _label_for(score: float, thresholds: dict[str, float]) -> str:
@@ -35,28 +32,32 @@ def combine(
     order_mismatch: bool = False,
     weights: dict[str, dict[str, float]] | None = None,
     thresholds: dict[str, float] | None = None,
+    penalties: dict[str, float] | None = None,
 ) -> tuple[float, str]:
     """Max of surface vs semantic weighted sums, with negation/antonym/order gates."""
     w = DEFAULT_WEIGHTS if weights is None else weights
     t = DEFAULT_THRESHOLDS if thresholds is None else thresholds
+    p = DEFAULT_PENALTIES if penalties is None else penalties
     surface_score = sum(w["surface"][n] * signals[n] for n in SURFACE_SIGNALS)
     semantic_score = sum(w["semantic"][n] * signals[n] for n in SEMANTIC_SIGNALS)
     score = max(surface_score, semantic_score)
     if negation_mismatch:
-        score *= NEGATION_PENALTY
+        score *= p["negation"]
     if antonym_mismatch:
-        score *= ANTONYM_PENALTY
+        score *= p["antonym"]
     if order_mismatch:
-        score *= ORDER_PENALTY
+        score *= p["order"]
     score = max(0.0, min(1.0, score))
     return score, _label_for(score, t)
 
 
-def load_config(path: str | Path) -> tuple[dict[str, dict[str, float]], dict[str, float]]:
-    """Read config.json or return defaults. Weights are nested as {surface: {...}, semantic: {...}}."""
+def load_config(
+    path: str | Path,
+) -> tuple[dict[str, dict[str, float]], dict[str, float], dict[str, float]]:
+    """Read config.json or return defaults. Returns (weights, thresholds, penalties)."""
     p = Path(path)
     if not p.exists():
-        return deepcopy(DEFAULT_WEIGHTS), dict(DEFAULT_THRESHOLDS)
+        return deepcopy(DEFAULT_WEIGHTS), dict(DEFAULT_THRESHOLDS), dict(DEFAULT_PENALTIES)
     data = json.loads(p.read_text())
     weights = {
         "surface": {name: float(data["weights"]["surface"][name]) for name in SURFACE_SIGNALS},
@@ -66,4 +67,12 @@ def load_config(path: str | Path) -> tuple[dict[str, dict[str, float]], dict[str
         "low": float(data["thresholds"]["low"]),
         "high": float(data["thresholds"]["high"]),
     }
-    return weights, thresholds
+    if "penalties" in data:
+        penalties = {
+            "negation": float(data["penalties"]["negation"]),
+            "antonym": float(data["penalties"]["antonym"]),
+            "order": float(data["penalties"]["order"]),
+        }
+    else:
+        penalties = dict(DEFAULT_PENALTIES)
+    return weights, thresholds, penalties

@@ -119,7 +119,7 @@ def _confusion(results: Sequence[PairResult]) -> dict[str, dict[str, int]]:
 
 def evaluate(gold: Sequence[GoldPair], config_path: str | Path | None = None) -> Report:
     """Score every gold pair directly and produce metrics."""
-    weights, thresholds = load_config(config_path if config_path else "config.json")
+    weights, thresholds, penalties = load_config(config_path if config_path else "config.json")
     if not gold:
         raise ValueError("evaluate requires at least one gold pair")
     all_phrases = {p.phrase_a for p in gold} | {p.phrase_b for p in gold}
@@ -132,7 +132,7 @@ def evaluate(gold: Sequence[GoldPair], config_path: str | Path | None = None) ->
         neg = a_phrase.has_negation != b_phrase.has_negation
         ant = detect_antonym_mismatch(pair.phrase_a, pair.phrase_b)
         ord_mm = detect_order_mismatch(a_phrase.tokens, b_phrase.tokens)
-        score, label = combine(signals, neg, ant, ord_mm, weights, thresholds)
+        score, label = combine(signals, neg, ant, ord_mm, weights, thresholds, penalties)
         results.append(PairResult(
             pair_id=pair.id,
             category=pair.category,
