@@ -1,0 +1,1002 @@
+[
+  {
+    "id": 1,
+    "phrase_a": "migrate the database to the cloud",
+    "phrase_b": "move the database over to the cloud",
+    "label": "MATCH",
+    "gold_score": 0.95,
+    "category": "easy_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Migrate and move express the same action and the rest is identical, so the two phrases mean essentially the same thing."
+  },
+  {
+    "id": 2,
+    "phrase_a": "deploy the new service to production",
+    "phrase_b": "push the new service to production",
+    "label": "MATCH",
+    "gold_score": 0.96,
+    "category": "easy_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Deploy and push are interchangeable in this domain; the phrases are otherwise identical and fully equivalent in meaning."
+  },
+  {
+    "id": 3,
+    "phrase_a": "update the database config",
+    "phrase_b": "update the database configuration",
+    "label": "MATCH",
+    "gold_score": 0.95,
+    "category": "easy_positive",
+    "phenomenon": "abbreviation",
+    "rationale": "Config is the standard abbreviation of configuration; the phrases are otherwise word-for-word identical. Tests an abbreviation-versus-full-form match."
+  },
+  {
+    "id": 4,
+    "phrase_a": "fix the broken login API endpoint",
+    "phrase_b": "fix the failing login API endpoint",
+    "label": "MATCH",
+    "gold_score": 0.93,
+    "category": "easy_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Broken and failing both describe the same defective endpoint, so the instructions are equivalent."
+  },
+  {
+    "id": 5,
+    "phrase_a": "enable caching on the product page",
+    "phrase_b": "turn on caching for the product page",
+    "label": "MATCH",
+    "gold_score": 0.94,
+    "category": "easy_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Enable and turn on are equivalent verb phrases referring to the same change, so the two phrases mean the same thing."
+  },
+  {
+    "id": 6,
+    "phrase_a": "roll back the failed deployment immediately",
+    "phrase_b": "roll back the failed deploymnet right away",
+    "label": "MATCH",
+    "gold_score": 0.95,
+    "category": "easy_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Immediately and right away are equivalent and the rest matches. Contains the typo 'deploymnet' to exercise the character n-gram layer."
+  },
+  {
+    "id": 7,
+    "phrase_a": "pause the release pipeline",
+    "phrase_b": "halt the deployment workflow",
+    "label": "MATCH",
+    "gold_score": 0.92,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Equivalent meaning expressed with disjoint words; pause/halt and release pipeline/deployment workflow are synonymous, so this is as true a match as any easy positive."
+  },
+  {
+    "id": 8,
+    "phrase_a": "speed up the slow web page",
+    "phrase_b": "make the sluggish frontend load faster",
+    "label": "MATCH",
+    "gold_score": 0.91,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Both phrases mean improving page-load performance and are fully equivalent despite sharing no content words."
+  },
+  {
+    "id": 9,
+    "phrase_a": "shut down the old server",
+    "phrase_b": "decommission the legacy machine",
+    "label": "MATCH",
+    "gold_score": 0.93,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Shut down/decommission, old/legacy and server/machine are synonymous, making the two phrases equivalent in meaning."
+  },
+  {
+    "id": 10,
+    "phrase_a": "the app keeps crashing",
+    "phrase_b": "the application repeatedly fails",
+    "label": "MATCH",
+    "gold_score": 0.92,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Same meaning conveyed with different surface forms; the pair is a genuine match and scored in the same band as a high-overlap positive."
+  },
+  {
+    "id": 11,
+    "phrase_a": "fix the bug in the checkout flow",
+    "phrase_b": "repair the defect in the payment process",
+    "label": "MATCH",
+    "gold_score": 0.91,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Fix/repair, bug/defect and checkout flow/payment process are synonymous, so the two phrases mean the same thing."
+  },
+  {
+    "id": 12,
+    "phrase_a": "give the developer access to the repo",
+    "phrase_b": "grant the engineer permission for the codebase",
+    "label": "MATCH",
+    "gold_score": 0.92,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Both request the same permission change; give/grant, developer/engineer, access/permission and repo/codebase align as synonyms."
+  },
+  {
+    "id": 13,
+    "phrase_a": "the request timed out",
+    "phrase_b": "the call exceded its deadline",
+    "label": "MATCH",
+    "gold_score": 0.91,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Equivalent failure description with disjoint words. Contains the typo 'exceded' so the pair also exercises the character n-gram layer."
+  },
+  {
+    "id": 14,
+    "phrase_a": "the deployment was approved by the team lead",
+    "phrase_b": "the team lead approved the deployment",
+    "label": "MATCH",
+    "gold_score": 0.96,
+    "category": "paraphrase_positive",
+    "phenomenon": "word_order",
+    "rationale": "Active and passive renderings of the same event; the meaning is identical."
+  },
+  {
+    "id": 15,
+    "phrase_a": "scaling the cluster automatically",
+    "phrase_b": "automatic scaling of the cluster",
+    "label": "MATCH",
+    "gold_score": 0.95,
+    "category": "paraphrase_positive",
+    "phenomenon": "morphology",
+    "rationale": "Automatically and automatic are morphological variants and the words are reordered, but the meaning is the same."
+  },
+  {
+    "id": 16,
+    "phrase_a": "we need to refactor the authentication module",
+    "phrase_b": "the authentication module needs refactoring",
+    "label": "MATCH",
+    "gold_score": 0.94,
+    "category": "paraphrase_positive",
+    "phenomenon": "morphology",
+    "rationale": "Equivalent meaning via refactor/refactoring and need/needs morphological variants plus reordering."
+  },
+  {
+    "id": 17,
+    "phrase_a": "configuration of the load balancer is complete",
+    "phrase_b": "we finished configuring the load balancer",
+    "label": "MATCH",
+    "gold_score": 0.94,
+    "category": "paraphrase_positive",
+    "phenomenon": "morphology",
+    "rationale": "Both state the load balancer setup is done; configuration/configuring is a morphological variant and the grammar differs."
+  },
+  {
+    "id": 18,
+    "phrase_a": "the migration of user data failed",
+    "phrase_b": "user data migration failed",
+    "label": "MATCH",
+    "gold_score": 0.96,
+    "category": "paraphrase_positive",
+    "phenomenon": "word_order",
+    "rationale": "Identical meaning with the noun phrase compressed and reordered into a compound-noun form."
+  },
+  {
+    "id": 19,
+    "phrase_a": "migrate the database to AWS",
+    "phrase_b": "migrate the database to AWS during off-peak hours",
+    "label": "PARTIAL",
+    "gold_score": 0.73,
+    "category": "partial",
+    "phenomenon": "additive_scope",
+    "rationale": "phrase_b adds a timing qualifier but otherwise states the same task, so meaning overlaps heavily without being equivalent."
+  },
+  {
+    "id": 20,
+    "phrase_a": "the API is slow in the EU region",
+    "phrase_b": "the API is slow in the US region",
+    "label": "PARTIAL",
+    "gold_score": 0.59,
+    "category": "partial",
+    "phenomenon": "modifier_difference",
+    "rationale": "Same statement about API slowness but the region modifier differs, so each phrase describes a different fact."
+  },
+  {
+    "id": 21,
+    "phrase_a": "restart the authentication service",
+    "phrase_b": "restart the billing servcie",
+    "label": "PARTIAL",
+    "gold_score": 0.50,
+    "category": "partial",
+    "phenomenon": "sibling_object",
+    "rationale": "Same action applied to two different services, neither subsuming the other. Contains the typo 'servcie' to exercise the character n-gram layer."
+  },
+  {
+    "id": 22,
+    "phrase_a": "fix the login bug",
+    "phrase_b": "fix the login bug and add two-factor authentication",
+    "label": "PARTIAL",
+    "gold_score": 0.55,
+    "category": "partial",
+    "phenomenon": "additive_scope",
+    "rationale": "phrase_b includes the first task plus an additional separate feature, so the meanings overlap only partially."
+  },
+  {
+    "id": 23,
+    "phrase_a": "set up a CI/CD pipeline",
+    "phrase_b": "set up the CI/CD pipeline for the payment service",
+    "label": "PARTIAL",
+    "gold_score": 0.66,
+    "category": "partial",
+    "phenomenon": "additive_scope",
+    "rationale": "Same activity but phrase_b scopes it to a specific service, adding specificity that prevents a full match."
+  },
+  {
+    "id": 24,
+    "phrase_a": "scale the payment service horizontally",
+    "phrase_b": "scale the inventory service horizontally",
+    "label": "PARTIAL",
+    "gold_score": 0.52,
+    "category": "partial",
+    "phenomenon": "sibling_object",
+    "rationale": "Identical scaling action on two distinct services; the phrases share a topic but are not equivalent."
+  },
+  {
+    "id": 25,
+    "phrase_a": "back up the user database",
+    "phrase_b": "restore the user database",
+    "label": "PARTIAL",
+    "gold_score": 0.47,
+    "category": "partial",
+    "phenomenon": "related_action",
+    "rationale": "Same object but back up and restore are related, non-equivalent operations on the database."
+  },
+  {
+    "id": 26,
+    "phrase_a": "review the pull request",
+    "phrase_b": "review and merge the pull request",
+    "label": "PARTIAL",
+    "gold_score": 0.63,
+    "category": "partial",
+    "phenomenon": "additive_scope",
+    "rationale": "phrase_b adds the merge action, a distinct step beyond reviewing, so the meaning overlaps without being equivalent."
+  },
+  {
+    "id": 27,
+    "phrase_a": "review the deployment checklist",
+    "phrase_b": "update the deployment checklst",
+    "label": "PARTIAL",
+    "gold_score": 0.54,
+    "category": "partial",
+    "phenomenon": "related_action",
+    "rationale": "Same deployment checklist but reviewing and updating it are related, distinct actions. Contains the typo 'checklst' to exercise the character n-gram layer."
+  },
+  {
+    "id": 28,
+    "phrase_a": "the login page is throwing errors",
+    "phrase_b": "the checkout page is throwing errors",
+    "label": "PARTIAL",
+    "gold_score": 0.51,
+    "category": "partial",
+    "phenomenon": "sibling_object",
+    "rationale": "Same error symptom reported on two different pages, neither of which subsumes the other."
+  },
+  {
+    "id": 29,
+    "phrase_a": "add logging to the service",
+    "phrase_b": "add structured logging to the order service",
+    "label": "PARTIAL",
+    "gold_score": 0.61,
+    "category": "partial",
+    "phenomenon": "additive_scope",
+    "rationale": "phrase_b specifies the logging style and the target service, narrowing the task without changing the core action."
+  },
+  {
+    "id": 30,
+    "phrase_a": "refactor the payment module",
+    "phrase_b": "document the payment module",
+    "label": "PARTIAL",
+    "gold_score": 0.45,
+    "category": "partial",
+    "phenomenon": "related_action",
+    "rationale": "Same module but refactoring and documenting it are related, non-equivalent tasks."
+  },
+  {
+    "id": 31,
+    "phrase_a": "migrate the user database to the cloud",
+    "phrase_b": "schedule the team lunch for Friday",
+    "label": "NO_MATCH",
+    "gold_score": 0.07,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "An infrastructure task and an office logistics task with no shared meaning."
+  },
+  {
+    "id": 32,
+    "phrase_a": "deploy the microservice to Kubernetes",
+    "phrase_b": "order new laptops for the design team",
+    "label": "NO_MATCH",
+    "gold_score": 0.06,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "Completely different subjects with no meaningful semantic overlap."
+  },
+  {
+    "id": 33,
+    "phrase_a": "fix the CSS layout on the homepage",
+    "phrase_b": "renew the office parking permit",
+    "label": "NO_MATCH",
+    "gold_score": 0.06,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "A frontend bug and an administrative errand share nothing semantically."
+  },
+  {
+    "id": 34,
+    "phrase_a": "configure the API gateway routing",
+    "phrase_b": "book a confernce room for the demo",
+    "label": "NO_MATCH",
+    "gold_score": 0.07,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "Unrelated topics with no overlapping meaning. Contains the typo 'confernce' to exercise the character n-gram layer."
+  },
+  {
+    "id": 35,
+    "phrase_a": "the load balancer is misconfigured",
+    "phrase_b": "the coffee machine is out of order",
+    "label": "NO_MATCH",
+    "gold_score": 0.08,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "Both describe something broken but about entirely different objects, so the meanings are unrelated."
+  },
+  {
+    "id": 36,
+    "phrase_a": "set up monitoring dashboards",
+    "phrase_b": "update the employee handbook",
+    "label": "NO_MATCH",
+    "gold_score": 0.06,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "An observability task and an HR documentation task with no shared meaning."
+  },
+  {
+    "id": 37,
+    "phrase_a": "refactor the legacy codebase",
+    "phrase_b": "water the plants in the lobby",
+    "label": "NO_MATCH",
+    "gold_score": 0.06,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "Engineering work versus office maintenance; the two phrases are semantically disjoint."
+  },
+  {
+    "id": 38,
+    "phrase_a": "increase the cache expiry time",
+    "phrase_b": "plan the quarterly marketing budget",
+    "label": "NO_MATCH",
+    "gold_score": 0.07,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "A caching configuration change and a finance planning task are unrelated."
+  },
+  {
+    "id": 39,
+    "phrase_a": "approve the production deployment",
+    "phrase_b": "do not approve the production deployment",
+    "label": "NO_MATCH",
+    "gold_score": 0.04,
+    "category": "negation",
+    "phenomenon": "negation",
+    "rationale": "The negation makes the two instructions contradictory, which is the opposite of a match despite high surface overlap."
+  },
+  {
+    "id": 40,
+    "phrase_a": "the migration completed successfully",
+    "phrase_b": "the migration did not complete successfully",
+    "label": "NO_MATCH",
+    "gold_score": 0.05,
+    "category": "negation",
+    "phenomenon": "negation",
+    "rationale": "The negation reverses the outcome, so the two phrases assert opposite facts."
+  },
+  {
+    "id": 41,
+    "phrase_a": "the cluster scaled up under load",
+    "phrase_b": "the cluster failed to scale up under load",
+    "label": "NO_MATCH",
+    "gold_score": 0.04,
+    "category": "negation",
+    "phenomenon": "negation",
+    "rationale": "phrase_b uses a 'failed to' construction to negate phrase_a, giving the opposite outcome with near-identical wording."
+  },
+  {
+    "id": 42,
+    "phrase_a": "the API endpoint is responding",
+    "phrase_b": "the API endpoint is not responding",
+    "label": "NO_MATCH",
+    "gold_score": 0.03,
+    "category": "negation",
+    "phenomenon": "negation",
+    "rationale": "Identical except for 'not', the two phrases describe opposite system states."
+  },
+  {
+    "id": 43,
+    "phrase_a": "increase the request rate limit",
+    "phrase_b": "decrease the requst rate limit",
+    "label": "NO_MATCH",
+    "gold_score": 0.05,
+    "category": "antonym",
+    "phenomenon": "antonym",
+    "rationale": "Increase and decrease are antonyms, so the actions are opposite. Contains the typo 'requst' to exercise the character n-gram layer."
+  },
+  {
+    "id": 44,
+    "phrase_a": "scale up the backend services",
+    "phrase_b": "scale down the backend services",
+    "label": "NO_MATCH",
+    "gold_score": 0.04,
+    "category": "antonym",
+    "phenomenon": "antonym",
+    "rationale": "Up and down invert the meaning, so the two instructions are contradictory."
+  },
+  {
+    "id": 45,
+    "phrase_a": "enable caching for the API",
+    "phrase_b": "disable caching for the API",
+    "label": "NO_MATCH",
+    "gold_score": 0.04,
+    "category": "antonym",
+    "phenomenon": "antonym",
+    "rationale": "Enable and disable are opposites, so the instructions conflict."
+  },
+  {
+    "id": 46,
+    "phrase_a": "the deployment speeds up page loads",
+    "phrase_b": "the deployment slows down page loads",
+    "label": "NO_MATCH",
+    "gold_score": 0.05,
+    "category": "antonym",
+    "phenomenon": "antonym",
+    "rationale": "Speeds up versus slows down reverses the claim, so the two phrases mean the opposite."
+  },
+  {
+    "id": 47,
+    "phrase_a": "the frontend calls the backend API",
+    "phrase_b": "the backend calls the frontend API",
+    "label": "NO_MATCH",
+    "gold_score": 0.15,
+    "category": "high_overlap_different_meaning",
+    "phenomenon": "word_order",
+    "rationale": "Subject and object are swapped, so the phrases describe different (not contradictory) call directions."
+  },
+  {
+    "id": 48,
+    "phrase_a": "migrate the database to the cloud",
+    "phrase_b": "migrate the cloud config to the database",
+    "label": "NO_MATCH",
+    "gold_score": 0.14,
+    "category": "high_overlap_different_meaning",
+    "phenomenon": "word_order",
+    "rationale": "Source and destination are swapped and a key noun differs, giving a different operation rather than a contradictory one."
+  },
+  {
+    "id": 49,
+    "phrase_a": "the load balancer routes traffic to the server",
+    "phrase_b": "the server routes traffic to the load balancer",
+    "label": "NO_MATCH",
+    "gold_score": 0.13,
+    "category": "high_overlap_different_meaning",
+    "phenomenon": "word_order",
+    "rationale": "Sender and receiver are reversed, describing a different traffic direction."
+  },
+  {
+    "id": 50,
+    "phrase_a": "deploy the service before running the tests",
+    "phrase_b": "run the tests before deploying the service",
+    "label": "NO_MATCH",
+    "gold_score": 0.16,
+    "category": "high_overlap_different_meaning",
+    "phenomenon": "word_order",
+    "rationale": "The order of operations is reversed, which is a different workflow rather than a contradictory statement."
+  },
+  {
+    "id": 51,
+    "phrase_a": "roll out the new feature flag",
+    "phrase_b": "release the new feature flag",
+    "label": "MATCH",
+    "gold_score": 0.95,
+    "category": "easy_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Roll out and release are interchangeable here and the rest is identical, so the phrases are fully equivalent."
+  },
+  {
+    "id": 52,
+    "phrase_a": "the certificate expires next week",
+    "phrase_b": "the certificate expires in a week",
+    "label": "MATCH",
+    "gold_score": 0.96,
+    "category": "easy_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Next week and in a week express the same deadline with otherwise identical wording."
+  },
+  {
+    "id": 53,
+    "phrase_a": "the app is using too much memory",
+    "phrase_b": "the application is using too much memory",
+    "label": "MATCH",
+    "gold_score": 0.95,
+    "category": "easy_positive",
+    "phenomenon": "abbreviation",
+    "rationale": "App is the common short form of application and the rest of the sentence is identical. Tests an abbreviation-versus-full-form positive."
+  },
+  {
+    "id": 54,
+    "phrase_a": "the build failed on the CI server",
+    "phrase_b": "the build broke on the CI server",
+    "label": "MATCH",
+    "gold_score": 0.95,
+    "category": "easy_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Failed and broke describe the same CI outcome and the rest of the phrase matches."
+  },
+  {
+    "id": 55,
+    "phrase_a": "roll out the patch to all the servers",
+    "phrase_b": "roll out the patch to all servers",
+    "label": "MATCH",
+    "gold_score": 0.96,
+    "category": "easy_positive",
+    "phenomenon": "function_word_difference",
+    "rationale": "The only difference is the dropped determiner 'the'; both sentences are unambiguously the same instruction. Tests a function-word-only positive."
+  },
+  {
+    "id": 56,
+    "phrase_a": "the dashboard shows stale metrics",
+    "phrase_b": "the dashboard displays stale metrcis",
+    "label": "MATCH",
+    "gold_score": 0.94,
+    "category": "easy_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Shows and displays are synonyms and the rest matches. Contains the typo 'metrcis' to exercise the character n-gram layer."
+  },
+  {
+    "id": 57,
+    "phrase_a": "the queue is backed up",
+    "phrase_b": "the message buffer is congested",
+    "label": "MATCH",
+    "gold_score": 0.91,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Queue/message buffer and backed up/congested are synonymous, so the phrases mean the same thing."
+  },
+  {
+    "id": 58,
+    "phrase_a": "wipe the temporary files",
+    "phrase_b": "clear out the scratch data",
+    "label": "MATCH",
+    "gold_score": 0.90,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Both mean deleting transient files; wipe/clear out and temporary files/scratch data align as synonyms."
+  },
+  {
+    "id": 59,
+    "phrase_a": "the site went down last night",
+    "phrase_b": "the platform was unavailable yesterday evening",
+    "label": "MATCH",
+    "gold_score": 0.92,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Equivalent outage description; site/platform, went down/unavailable and last night/yesterday evening are synonymous."
+  },
+  {
+    "id": 60,
+    "phrase_a": "tighten the security rules",
+    "phrase_b": "harden the access policies",
+    "label": "MATCH",
+    "gold_score": 0.93,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Same instruction to make access stricter; tighten/harden and security rules/access policies are synonymous."
+  },
+  {
+    "id": 61,
+    "phrase_a": "the response is sluggish",
+    "phrase_b": "the reply takes too lnog",
+    "label": "MATCH",
+    "gold_score": 0.90,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Equivalent complaint about slow responses. Contains the typo 'lnog' to exercise the character n-gram layer."
+  },
+  {
+    "id": 62,
+    "phrase_a": "hand off the ticket to support",
+    "phrase_b": "transfer the case to the help desk",
+    "label": "MATCH",
+    "gold_score": 0.91,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Both describe escalating an issue; hand off/transfer, ticket/case and support/help desk are synonymous."
+  },
+  {
+    "id": 63,
+    "phrase_a": "the rollout was smooth",
+    "phrase_b": "the launch went without a hitch",
+    "label": "MATCH",
+    "gold_score": 0.90,
+    "category": "synonym_positive",
+    "phenomenon": "synonym_substitution",
+    "rationale": "Both mean a release had no problems; rollout/launch and smooth/without a hitch are equivalent."
+  },
+  {
+    "id": 64,
+    "phrase_a": "the engineer who wrote the documentation",
+    "phrase_b": "the documentation was written by the engineer",
+    "label": "MATCH",
+    "gold_score": 0.95,
+    "category": "paraphrase_positive",
+    "phenomenon": "word_order",
+    "rationale": "A relative clause and a passive sentence refer to the same fact, so the meaning is identical."
+  },
+  {
+    "id": 65,
+    "phrase_a": "encrypting the data at rest",
+    "phrase_b": "encryption of the data at rest",
+    "label": "MATCH",
+    "gold_score": 0.95,
+    "category": "paraphrase_positive",
+    "phenomenon": "morphology",
+    "rationale": "Encrypting and encryption are morphological variants describing the same control."
+  },
+  {
+    "id": 66,
+    "phrase_a": "the test suite runs slowly",
+    "phrase_b": "slow execution of the test suite",
+    "label": "MATCH",
+    "gold_score": 0.93,
+    "category": "paraphrase_positive",
+    "phenomenon": "morphology",
+    "rationale": "Same observation with runs/execution and slowly/slow as morphological variants plus reordering."
+  },
+  {
+    "id": 67,
+    "phrase_a": "they delayed the release until Monday",
+    "phrase_b": "the release was delayed until Monday by them",
+    "label": "MATCH",
+    "gold_score": 0.95,
+    "category": "paraphrase_positive",
+    "phenomenon": "word_order",
+    "rationale": "Active and passive renderings of the same scheduling decision."
+  },
+  {
+    "id": 68,
+    "phrase_a": "validating user input on the client",
+    "phrase_b": "client-side validation of user input",
+    "label": "MATCH",
+    "gold_score": 0.94,
+    "category": "paraphrase_positive",
+    "phenomenon": "morphology",
+    "rationale": "Equivalent meaning via validating/validation morphology and reordering into a compound-noun form."
+  },
+  {
+    "id": 69,
+    "phrase_a": "back up the production database",
+    "phrase_b": "back up the production database every night",
+    "label": "PARTIAL",
+    "gold_score": 0.72,
+    "category": "partial",
+    "phenomenon": "additive_scope",
+    "rationale": "phrase_b adds a recurring schedule but otherwise states the same task, so meaning overlaps heavily without being equivalent."
+  },
+  {
+    "id": 70,
+    "phrase_a": "purge the Redis cache",
+    "phrase_b": "purge the CDN cache",
+    "label": "PARTIAL",
+    "gold_score": 0.49,
+    "category": "partial",
+    "phenomenon": "sibling_object",
+    "rationale": "Same purge action applied to two different caches; related topic but not equivalent."
+  },
+  {
+    "id": 71,
+    "phrase_a": "write unit tests for the module",
+    "phrase_b": "write unit and integration tests for the module",
+    "label": "PARTIAL",
+    "gold_score": 0.64,
+    "category": "partial",
+    "phenomenon": "additive_scope",
+    "rationale": "phrase_b broadens the scope to include integration tests, narrowing the overlap without making the phrases equivalent."
+  },
+  {
+    "id": 72,
+    "phrase_a": "compress the image assets",
+    "phrase_b": "upload the image assets",
+    "label": "PARTIAL",
+    "gold_score": 0.50,
+    "category": "partial",
+    "phenomenon": "related_action",
+    "rationale": "Same image assets but compressing and uploading them are related, distinct steps."
+  },
+  {
+    "id": 73,
+    "phrase_a": "the page renders correctly on Chrome",
+    "phrase_b": "the page renders correctly on Safri",
+    "label": "PARTIAL",
+    "gold_score": 0.57,
+    "category": "partial",
+    "phenomenon": "modifier_difference",
+    "rationale": "Same rendering claim but the browser modifier differs, so each describes a different fact. Contains the typo 'Safri' to exercise the character n-gram layer."
+  },
+  {
+    "id": 74,
+    "phrase_a": "deploy the frontend to the staging environment",
+    "phrase_b": "deploy the frontend to the production environment",
+    "label": "PARTIAL",
+    "gold_score": 0.55,
+    "category": "partial",
+    "phenomenon": "modifier_difference",
+    "rationale": "Same deployment action but the target environment differs, which is a meaningful distinction."
+  },
+  {
+    "id": 75,
+    "phrase_a": "move the workload to a new region",
+    "phrase_b": "move the workload to a new region for disaster recovery",
+    "label": "PARTIAL",
+    "gold_score": 0.70,
+    "category": "partial",
+    "phenomenon": "additive_scope",
+    "rationale": "phrase_b states a specific purpose for the same migration, narrowing the meaning without changing the core action."
+  },
+  {
+    "id": 76,
+    "phrase_a": "write the API documentation",
+    "phrase_b": "write the onboarding documentation",
+    "label": "PARTIAL",
+    "gold_score": 0.47,
+    "category": "partial",
+    "phenomenon": "sibling_object",
+    "rationale": "Same writing action applied to two different documents, neither of which subsumes the other."
+  },
+  {
+    "id": 77,
+    "phrase_a": "enable distributed tracing",
+    "phrase_b": "enable distributed tracing across all microservices",
+    "label": "PARTIAL",
+    "gold_score": 0.68,
+    "category": "partial",
+    "phenomenon": "additive_scope",
+    "rationale": "phrase_b widens the scope to every microservice, adding a qualifier that prevents a full match."
+  },
+  {
+    "id": 78,
+    "phrase_a": "the cache should be invalidated",
+    "phrase_b": "the cache should be invalidated when an order changes",
+    "label": "PARTIAL",
+    "gold_score": 0.64,
+    "category": "partial",
+    "phenomenon": "additive_scope",
+    "rationale": "phrase_b adds a specific trigger condition for the invalidation, narrowing the meaning."
+  },
+  {
+    "id": 79,
+    "phrase_a": "the nightly build passed all tests",
+    "phrase_b": "the weekly build passed all tests",
+    "label": "PARTIAL",
+    "gold_score": 0.61,
+    "category": "partial",
+    "phenomenon": "modifier_difference",
+    "rationale": "Same statement about a passing build but nightly and weekly refer to different builds."
+  },
+  {
+    "id": 80,
+    "phrase_a": "audit the access logs",
+    "phrase_b": "archive the access logs",
+    "label": "PARTIAL",
+    "gold_score": 0.49,
+    "category": "partial",
+    "phenomenon": "related_action",
+    "rationale": "Same access logs but auditing and archiving them are related, non-equivalent actions."
+  },
+  {
+    "id": 81,
+    "phrase_a": "encrypt the data at rest",
+    "phrase_b": "reschedule the dentist appointment",
+    "label": "NO_MATCH",
+    "gold_score": 0.06,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "A security task and a personal errand with no shared meaning."
+  },
+  {
+    "id": 82,
+    "phrase_a": "the message queue is overloaded",
+    "phrase_b": "the printer is low on toner",
+    "label": "NO_MATCH",
+    "gold_score": 0.08,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "Both describe a resource problem but about unrelated objects, so the meanings do not overlap."
+  },
+  {
+    "id": 83,
+    "phrase_a": "set up a service mesh",
+    "phrase_b": "buy birthday cake for the intern",
+    "label": "NO_MATCH",
+    "gold_score": 0.06,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "An infrastructure task and an office celebration share nothing semantically."
+  },
+  {
+    "id": 84,
+    "phrase_a": "patch the security vulnerability",
+    "phrase_b": "repaint the meeting room walls",
+    "label": "NO_MATCH",
+    "gold_score": 0.07,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "Engineering remediation versus facilities work; the phrases are semantically disjoint."
+  },
+  {
+    "id": 85,
+    "phrase_a": "the canary release looks healthy",
+    "phrase_b": "the parking garage closes at nine",
+    "label": "NO_MATCH",
+    "gold_score": 0.06,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "A deployment status and a building schedule are unrelated."
+  },
+  {
+    "id": 86,
+    "phrase_a": "optimize the SQL query",
+    "phrase_b": "submit the travel expense report",
+    "label": "NO_MATCH",
+    "gold_score": 0.06,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "A database task and an administrative chore share no meaning."
+  },
+  {
+    "id": 87,
+    "phrase_a": "the front end is missing a favicon",
+    "phrase_b": "the elevator is under maintenence",
+    "label": "NO_MATCH",
+    "gold_score": 0.08,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "A frontend defect and a building issue are unrelated. Contains the typo 'maintenence' to exercise the character n-gram layer."
+  },
+  {
+    "id": 88,
+    "phrase_a": "configure the DNS records",
+    "phrase_b": "feed the office fish on weekends",
+    "label": "NO_MATCH",
+    "gold_score": 0.06,
+    "category": "easy_negative",
+    "phenomenon": "unrelated",
+    "rationale": "A networking task and an office chore have no shared meaning."
+  },
+  {
+    "id": 89,
+    "phrase_a": "the health check passed",
+    "phrase_b": "the health check did not pass",
+    "label": "NO_MATCH",
+    "gold_score": 0.04,
+    "category": "negation",
+    "phenomenon": "negation",
+    "rationale": "The negation gives the two phrases opposite outcomes despite maximal overlap."
+  },
+  {
+    "id": 90,
+    "phrase_a": "merge the branch into main",
+    "phrase_b": "do not merge the branch into main",
+    "label": "NO_MATCH",
+    "gold_score": 0.05,
+    "category": "negation",
+    "phenomenon": "negation",
+    "rationale": "The instructions are contradictory because of the negation, the opposite of a match."
+  },
+  {
+    "id": 91,
+    "phrase_a": "the background job runs on schedule",
+    "phrase_b": "the background job never runs on schedule",
+    "label": "NO_MATCH",
+    "gold_score": 0.04,
+    "category": "negation",
+    "phenomenon": "negation",
+    "rationale": "phrase_b inserts 'never' to negate phrase_a; the two statements are contradictory despite maximal overlap."
+  },
+  {
+    "id": 92,
+    "phrase_a": "the release shipped with the security patch",
+    "phrase_b": "the release shipped without the security patch",
+    "label": "NO_MATCH",
+    "gold_score": 0.04,
+    "category": "negation",
+    "phenomenon": "negation",
+    "rationale": "With versus without is the only change, flipping whether the patch shipped. Tests a 'without' negation form."
+  },
+  {
+    "id": 93,
+    "phrase_a": "expand the storage volume",
+    "phrase_b": "shrink the storgae volume",
+    "label": "NO_MATCH",
+    "gold_score": 0.04,
+    "category": "antonym",
+    "phenomenon": "antonym",
+    "rationale": "Expand and shrink are antonyms, so the actions are opposite. Contains the typo 'storgae' to exercise the character n-gram layer."
+  },
+  {
+    "id": 94,
+    "phrase_a": "the latency went up after the deploy",
+    "phrase_b": "the latency went down after the deploy",
+    "label": "NO_MATCH",
+    "gold_score": 0.05,
+    "category": "antonym",
+    "phenomenon": "antonym",
+    "rationale": "Up and down invert the observed effect, so the two phrases mean the opposite."
+  },
+  {
+    "id": 95,
+    "phrase_a": "grant write access to the bucket",
+    "phrase_b": "revoke write access to the bucket",
+    "label": "NO_MATCH",
+    "gold_score": 0.04,
+    "category": "antonym",
+    "phenomenon": "antonym",
+    "rationale": "Grant and revoke are opposites, so the permission changes are contradictory."
+  },
+  {
+    "id": 96,
+    "phrase_a": "the new release improved stability",
+    "phrase_b": "the new release worsened stability",
+    "label": "NO_MATCH",
+    "gold_score": 0.05,
+    "category": "antonym",
+    "phenomenon": "antonym",
+    "rationale": "Improved versus worsened reverses the claim, so the phrases mean the opposite."
+  },
+  {
+    "id": 97,
+    "phrase_a": "the client sends a token to the server",
+    "phrase_b": "the server sends a token to the client",
+    "label": "NO_MATCH",
+    "gold_score": 0.15,
+    "category": "high_overlap_different_meaning",
+    "phenomenon": "word_order",
+    "rationale": "Sender and receiver are swapped, so the phrases describe a different exchange rather than a contradictory one."
+  },
+  {
+    "id": 98,
+    "phrase_a": "the parent component updates the child state",
+    "phrase_b": "the child component updates the parent state",
+    "label": "NO_MATCH",
+    "gold_score": 0.14,
+    "category": "high_overlap_different_meaning",
+    "phenomenon": "word_order",
+    "rationale": "Parent and child roles are swapped, describing a different data flow."
+  },
+  {
+    "id": 99,
+    "phrase_a": "copy the config from staging to production",
+    "phrase_b": "copy the confgi from production to staging",
+    "label": "NO_MATCH",
+    "gold_score": 0.13,
+    "category": "high_overlap_different_meaning",
+    "phenomenon": "word_order",
+    "rationale": "Source and destination are reversed, giving a different operation. Contains the typo 'confgi' to exercise the character n-gram layer."
+  },
+  {
+    "id": 100,
+    "phrase_a": "the producer pushes messages to the consumer",
+    "phrase_b": "the consumer pushes messages to the producer",
+    "label": "NO_MATCH",
+    "gold_score": 0.14,
+    "category": "high_overlap_different_meaning",
+    "phenomenon": "word_order",
+    "rationale": "Producer and consumer roles are swapped, reversing who sends messages; a different statement rather than a contradictory one."
+  }
+]
