@@ -2,13 +2,14 @@
 
 Match a phrase against candidates. Returns them ranked 0 to 1 and labelled MATCH, PARTIAL, or NO_MATCH.
 
-Classical NLP only. Six signals (TF-IDF cosine, Jaccard, WordNet alignment, WordNet soft-overlap, char n-grams, word order) combined max-of-two-groups (surface vs semantic), with negation, antonym, and order-mismatch gates. No neural nets, no API calls.
+Pluggable backends. classical (WordNet plus 6 signals, default). use (Universal Sentence Encoder v4 via TF Hub).
 
 ## Install
 
-    pip install -r requirements.txt
+    pip install -r requirements.txt        # core
+    pip install -r requirements-use.txt    # add USE backend (TensorFlow + TF Hub)
 
-NLTK data downloads on first run.
+NLTK data downloads on first run. USE model loads on first use.
 
 ## Use
 
@@ -17,8 +18,11 @@ NLTK data downloads on first run.
     for r in m.match("a cat on a mat", k=3):
         print(r.score, r.label, r.candidate)
 
+    python cli.py "a cat on a mat" cands.txt --backend use
+
 ## Evaluate, tune, test
 
-    python evaluate.py   # report on data/gold_pairs.json
-    python tune.py       # writes config.json only if cv beats default
-    pytest
+    python evaluate.py     # report on data/gold_pairs.json
+    python tune.py         # writes config.json only if cv beats default
+    pytest                 # fast suite
+    pytest --runslow       # includes USE model integration tests
