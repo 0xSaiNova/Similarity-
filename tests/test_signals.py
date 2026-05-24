@@ -1,9 +1,7 @@
 """Tests for signals module."""
-import math
-
 import pytest
 
-from signals import char_ngram_sim, jaccard, order_sim
+from signals import char_ngram_sim, detect_order_mismatch, jaccard, order_sim
 
 
 def test_jaccard_identical_sets():
@@ -105,7 +103,6 @@ def test_order_sim_swapped_pair_is_zero():
 
 
 def test_detect_order_mismatch_role_swap_fires():
-    from signals import detect_order_mismatch
     # same token set, bigrams diverge
     assert detect_order_mismatch(
         ["producer", "push", "message", "consumer"],
@@ -114,18 +111,15 @@ def test_detect_order_mismatch_role_swap_fires():
 
 
 def test_detect_order_mismatch_identical_order_does_not_fire():
-    from signals import detect_order_mismatch
     assert detect_order_mismatch(["a", "b", "c"], ["a", "b", "c"]) is False
 
 
 def test_detect_order_mismatch_disjoint_tokens_does_not_fire():
-    from signals import detect_order_mismatch
     # set Jaccard too low to be a "same words, scrambled" case
     assert detect_order_mismatch(["a", "b", "c"], ["x", "y", "z"]) is False
 
 
 def test_detect_order_mismatch_one_extra_token_does_not_fire():
-    from signals import detect_order_mismatch
     # set Jaccard 3/4 = 0.75 < 0.9
     assert detect_order_mismatch(
         ["migrate", "database", "cloud"],
@@ -134,6 +128,5 @@ def test_detect_order_mismatch_one_extra_token_does_not_fire():
 
 
 def test_detect_order_mismatch_empty_returns_false():
-    from signals import detect_order_mismatch
     assert detect_order_mismatch([], ["a"]) is False
     assert detect_order_mismatch(["a"], []) is False

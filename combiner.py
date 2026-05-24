@@ -51,6 +51,17 @@ def combine(
     return score, _label_for(score, t)
 
 
+WEIGHT_SUM_TOL: float = 1e-6
+
+
+def _validate_weight_group(weights: dict[str, float], group: str) -> None:
+    total = sum(weights.values())
+    if abs(total - 1.0) > WEIGHT_SUM_TOL:
+        raise ValueError(
+            f"config weights['{group}'] must sum to 1.0 (got {total:.6f})"
+        )
+
+
 def load_config(
     path: str | Path,
 ) -> tuple[dict[str, dict[str, float]], dict[str, float], dict[str, float]]:
@@ -63,6 +74,8 @@ def load_config(
         "surface": {name: float(data["weights"]["surface"][name]) for name in SURFACE_SIGNALS},
         "semantic": {name: float(data["weights"]["semantic"][name]) for name in SEMANTIC_SIGNALS},
     }
+    _validate_weight_group(weights["surface"], "surface")
+    _validate_weight_group(weights["semantic"], "semantic")
     thresholds = {
         "low": float(data["thresholds"]["low"]),
         "high": float(data["thresholds"]["high"]),

@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Callable
 
 from combiner import combine, load_config
 from index import PhraseIndex
@@ -107,6 +108,29 @@ def load_gold(path: str | Path) -> list[GoldPair]:
     return [_validate_pair(item, i + 1) for i, item in enumerate(raw)]
 
 
+def build_cache(gold: Sequence[GoldPair], factory: Callable[..., Any]) -> list[Any]:
+    """Precompute (signals, gate flags) for every gold pair, wrap via factory(pair=, signals=, ...)."""
+    all_phrases = sorted({p.phrase_a for p in gold} | {p.phrase_b for p in gold})
+    index = PhraseIndex(all_phrases)
+    out: list[Any] = []
+    for p in gold:
+        a = build_phrase(p.phrase_a)
+        b = build_phrase(p.phrase_b)
+        out.append(factory(
+            pair=p,
+            signals=compute_signals(p.phrase_a, p.phrase_b, index, a, b),
+            negation_mismatch=a.has_negation != b.has_negation,
+            antonym_mismatch=detect_antonym_mismatch(p.phrase_a, p.phrase_b),
+            order_mismatch=detect_order_mismatch(a.tokens, b.tokens),
+        ))
+    return out
+
+
+def macro_f1(metrics: dict[str, LabelMetrics]) -> float:
+    """Mean F1 across labels."""
+    return sum(m.f1 for m in metrics.values()) / len(metrics)
+
+
 def _per_label_metrics(results: Sequence[PairResult]) -> dict[str, LabelMetrics]:
     out: dict[str, LabelMetrics] = {}
     for label in LABELS:
@@ -151,39 +175,39 @@ def _roc_auc(results: Sequence[PairResult]) -> float:
     return float(roc_auc_score(y_true, y_score))
 
 
+@dataclass(frozen=True)
+class _EvalCachedPair:
+    pair: GoldPair
+    signals: dict[str, float]
+    negation_mismatch: bool
+    antonym_mismatch: bool
+    order_mismatch: bool
+
+
 def evaluate(gold: Sequence[GoldPair], config_path: str | Path | None = None) -> Report:
     """Score every gold pair directly and produce metrics."""
-    weights, thresholds, penalties = load_config(config_path if config_path else "config.json")
     if not gold:
         raise ValueError("evaluate requires at least one gold pair")
-    all_phrases = {p.phrase_a for p in gold} | {p.phrase_b for p in gold}
-    index = PhraseIndex(sorted(all_phrases))
+    weights, thresholds, penalties = load_config(config_path if config_path else "config.json")
+    cache = build_cache(list(gold), _EvalCachedPair)
     results: list[PairResult] = []
-    for pair in gold:
-        signals = compute_signals(pair.phrase_a, pair.phrase_b, index)
-        a_phrase = build_phrase(pair.phrase_a)
-        b_phrase = build_phrase(pair.phrase_b)
-        neg = a_phrase.has_negation != b_phrase.has_negation
-        ant = detect_antonym_mismatch(pair.phrase_a, pair.phrase_b)
-        ord_mm = detect_order_mismatch(a_phrase.tokens, b_phrase.tokens)
-        score, label = combine(signals, neg, ant, ord_mm, weights, thresholds, penalties)
+    for c in cache:
+        score, label = combine(
+            c.signals, c.negation_mismatch, c.antonym_mismatch, c.order_mismatch,
+            weights, thresholds, penalties,
+        )
         results.append(PairResult(
-            pair_id=pair.id,
-            category=pair.category,
-            phenomenon=pair.phenomenon,
-            predicted_score=score,
-            gold_score=pair.gold_score,
-            predicted_label=label,
-            gold_label=pair.label,
+            pair_id=c.pair.id, category=c.pair.category, phenomenon=c.pair.phenomenon,
+            predicted_score=score, gold_score=c.pair.gold_score,
+            predicted_label=label, gold_label=c.pair.label,
         ))
     per_label = _per_label_metrics(results)
-    macro_f1 = sum(m.f1 for m in per_label.values()) / len(per_label)
     mae = sum(abs(r.predicted_score - r.gold_score) for r in results) / len(results)
     worst = sorted(results, key=lambda r: abs(r.predicted_score - r.gold_score), reverse=True)[:10]
     return Report(
         total=len(results),
         per_label=per_label,
-        macro_f1=macro_f1,
+        macro_f1=macro_f1(per_label),
         confusion=_confusion(results),
         mae=mae,
         worst=worst,

@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 
 from combiner import DEFAULT_PENALTIES, DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS, combine, load_config
 from index import PhraseIndex
-from preprocess import build_phrase, detect_antonym_mismatch
+from preprocess import Phrase, build_phrase, detect_antonym_mismatch
 from signals import char_ngram_sim, detect_order_mismatch, jaccard, order_sim
 from wordnet_sim import alignment_sim, soft_overlap
 
@@ -24,10 +25,18 @@ class MatchResult:
     order_mismatch: bool
 
 
-def compute_signals(phrase_a: str, phrase_b: str, index: PhraseIndex) -> dict[str, float]:
-    """Compute the 6-signal dict for a phrase pair."""
-    a = build_phrase(phrase_a)
-    b = build_phrase(phrase_b)
+def compute_signals(
+    phrase_a: str,
+    phrase_b: str,
+    index: PhraseIndex,
+    a: Phrase | None = None,
+    b: Phrase | None = None,
+) -> dict[str, float]:
+    """Compute the 6-signal dict for a phrase pair. Pre-built Phrases reused if supplied."""
+    if a is None:
+        a = build_phrase(phrase_a)
+    if b is None:
+        b = build_phrase(phrase_b)
     return {
         "tfidf": index.tfidf_cosine(phrase_a, phrase_b),
         "jaccard": jaccard(a.tokens, b.tokens),
@@ -48,7 +57,7 @@ class Matcher:
     ) -> None:
         self.index = PhraseIndex(candidates)
         if config_path is None:
-            self.weights = dict(DEFAULT_WEIGHTS)
+            self.weights = deepcopy(DEFAULT_WEIGHTS)
             self.thresholds = dict(DEFAULT_THRESHOLDS)
             self.penalties = dict(DEFAULT_PENALTIES)
         else:
@@ -61,7 +70,7 @@ class Matcher:
         results: list[MatchResult] = []
         for cand in candidates:
             cand_phrase = build_phrase(cand)
-            signals = compute_signals(query, cand, self.index)
+            signals = compute_signals(query, cand, self.index, query_phrase, cand_phrase)
             neg_mismatch = query_phrase.has_negation != cand_phrase.has_negation
             ant_mismatch = detect_antonym_mismatch(query, cand)
             ord_mismatch = detect_order_mismatch(query_phrase.tokens, cand_phrase.tokens)

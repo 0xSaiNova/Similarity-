@@ -112,7 +112,7 @@ def test_matcher_loads_config_path(tmp_path, candidates: list[str]) -> None:
     config.write_text(json.dumps({
         "weights": {
             "surface": {"tfidf": 1.0, "jaccard": 0.0, "ngram": 0.0, "order": 0.0},
-            "semantic": {"wordnet": 0.0, "soft_overlap": 0.0},
+            "semantic": {"wordnet": 1.0, "soft_overlap": 0.0},
         },
         "thresholds": {"low": 0.1, "high": 0.5},
     }))

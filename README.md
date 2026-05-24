@@ -2,7 +2,7 @@
 
 Match a phrase against candidates. Returns them ranked 0 to 1 and labelled MATCH, PARTIAL, or NO_MATCH.
 
-Classical NLP only: TF-IDF, Jaccard, WordNet, char n-grams, word order, plus negation, antonym, and order gates. No neural nets, no API calls.
+Classical NLP only. Six signals (TF-IDF cosine, Jaccard, WordNet alignment, WordNet soft-overlap, char n-grams, word order) combined max-of-two-groups (surface vs semantic), with negation, antonym, and order-mismatch gates. No neural nets, no API calls.
 
 ## Install
 

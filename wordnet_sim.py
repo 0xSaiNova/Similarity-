@@ -15,7 +15,7 @@ WORDNET_FLOOR: float = 0.45
 SOFT_MATCH_THRESHOLD: float = 0.6
 
 
-@lru_cache(maxsize=None)
+@lru_cache(maxsize=50000)
 def _all_synsets(word: str) -> tuple:
     ensure_nltk_data()
     out: list = []
@@ -24,7 +24,7 @@ def _all_synsets(word: str) -> tuple:
     return tuple(out)
 
 
-@lru_cache(maxsize=None)
+@lru_cache(maxsize=200000)
 def _word_similarity_ordered(w1: str, w2: str) -> float:
     syns_a = _all_synsets(w1)
     syns_b = _all_synsets(w2)
