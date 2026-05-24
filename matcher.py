@@ -9,7 +9,7 @@ from combiner import DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS, combine, load_config
 from index import PhraseIndex
 from preprocess import build_phrase, detect_antonym_mismatch
 from signals import char_ngram_sim, jaccard, order_sim
-from wordnet_sim import alignment_sim
+from wordnet_sim import alignment_sim, soft_overlap
 
 
 @dataclass(frozen=True)
@@ -24,7 +24,7 @@ class MatchResult:
 
 
 def compute_signals(phrase_a: str, phrase_b: str, index: PhraseIndex) -> dict[str, float]:
-    """Compute the 5-signal dict for a phrase pair."""
+    """Compute the 6-signal dict for a phrase pair."""
     a = build_phrase(phrase_a)
     b = build_phrase(phrase_b)
     return {
@@ -33,6 +33,7 @@ def compute_signals(phrase_a: str, phrase_b: str, index: PhraseIndex) -> dict[st
         "wordnet": alignment_sim(a.tokens, b.tokens),
         "ngram": char_ngram_sim(phrase_a, phrase_b),
         "order": order_sim(a.tokens, b.tokens),
+        "soft_overlap": soft_overlap(a.tokens, b.tokens),
     }
 
 

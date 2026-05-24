@@ -1,12 +1,18 @@
-"""Combine per-signal scores into a final score + label."""
+"""Combine per-signal scores into a final score + label using OR-logic across two groups."""
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from pathlib import Path
 
-SIGNAL_NAMES: tuple[str, ...] = ("tfidf", "jaccard", "wordnet", "ngram", "order")
+SURFACE_SIGNALS: tuple[str, ...] = ("tfidf", "jaccard", "ngram", "order")
+SEMANTIC_SIGNALS: tuple[str, ...] = ("wordnet", "soft_overlap")
+SIGNAL_NAMES: tuple[str, ...] = SURFACE_SIGNALS + SEMANTIC_SIGNALS
 
-DEFAULT_WEIGHTS: dict[str, float] = {name: 0.2 for name in SIGNAL_NAMES}
+DEFAULT_WEIGHTS: dict[str, dict[str, float]] = {
+    "surface": {name: 1.0 / len(SURFACE_SIGNALS) for name in SURFACE_SIGNALS},
+    "semantic": {name: 1.0 / len(SEMANTIC_SIGNALS) for name in SEMANTIC_SIGNALS},
+}
 DEFAULT_THRESHOLDS: dict[str, float] = {"low": 0.4, "high": 0.7}
 
 NEGATION_PENALTY: float = 0.3
@@ -25,13 +31,15 @@ def combine(
     signals: dict[str, float],
     negation_mismatch: bool,
     antonym_mismatch: bool = False,
-    weights: dict[str, float] | None = None,
+    weights: dict[str, dict[str, float]] | None = None,
     thresholds: dict[str, float] | None = None,
 ) -> tuple[float, str]:
-    """Weighted sum of signals -> clamped [0,1] score + label; penalize negation/antonym mismatch."""
+    """Max of surface vs semantic weighted sums, with negation/antonym gates."""
     w = DEFAULT_WEIGHTS if weights is None else weights
     t = DEFAULT_THRESHOLDS if thresholds is None else thresholds
-    score = sum(w[name] * signals[name] for name in SIGNAL_NAMES)
+    surface_score = sum(w["surface"][n] * signals[n] for n in SURFACE_SIGNALS)
+    semantic_score = sum(w["semantic"][n] * signals[n] for n in SEMANTIC_SIGNALS)
+    score = max(surface_score, semantic_score)
     if negation_mismatch:
         score *= NEGATION_PENALTY
     if antonym_mismatch:
@@ -40,13 +48,16 @@ def combine(
     return score, _label_for(score, t)
 
 
-def load_config(path: str | Path) -> tuple[dict[str, float], dict[str, float]]:
-    """Read config.json or return defaults."""
+def load_config(path: str | Path) -> tuple[dict[str, dict[str, float]], dict[str, float]]:
+    """Read config.json or return defaults. Weights are nested as {surface: {...}, semantic: {...}}."""
     p = Path(path)
     if not p.exists():
-        return dict(DEFAULT_WEIGHTS), dict(DEFAULT_THRESHOLDS)
+        return deepcopy(DEFAULT_WEIGHTS), dict(DEFAULT_THRESHOLDS)
     data = json.loads(p.read_text())
-    weights = {name: float(data["weights"][name]) for name in SIGNAL_NAMES}
+    weights = {
+        "surface": {name: float(data["weights"]["surface"][name]) for name in SURFACE_SIGNALS},
+        "semantic": {name: float(data["weights"]["semantic"][name]) for name in SEMANTIC_SIGNALS},
+    }
     thresholds = {
         "low": float(data["thresholds"]["low"]),
         "high": float(data["thresholds"]["high"]),

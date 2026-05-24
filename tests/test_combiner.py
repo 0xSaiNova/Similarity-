@@ -47,8 +47,12 @@ def test_combine_negation_mismatch_drops_score_well_below_no_mismatch() -> None:
 
 
 def test_combine_score_is_clamped_to_unit_interval() -> None:
-    heavy_weights = {name: 5.0 for name in SIGNAL_NAMES}
-    score, _ = combine(_full_signals(1.0), negation_mismatch=False, weights=heavy_weights)
+    from combiner import SEMANTIC_SIGNALS, SURFACE_SIGNALS
+    heavy = {
+        "surface": {name: 5.0 for name in SURFACE_SIGNALS},
+        "semantic": {name: 5.0 for name in SEMANTIC_SIGNALS},
+    }
+    score, _ = combine(_full_signals(1.0), negation_mismatch=False, weights=heavy)
     assert score == 1.0
 
 
@@ -61,7 +65,10 @@ def test_load_config_missing_file_returns_defaults(tmp_path: Path) -> None:
 def test_load_config_reads_weights_and_thresholds(tmp_path: Path) -> None:
     path = tmp_path / "config.json"
     payload = {
-        "weights": {"tfidf": 0.1, "jaccard": 0.2, "wordnet": 0.3, "ngram": 0.15, "order": 0.25},
+        "weights": {
+            "surface": {"tfidf": 0.1, "jaccard": 0.2, "ngram": 0.4, "order": 0.3},
+            "semantic": {"wordnet": 0.6, "soft_overlap": 0.4},
+        },
         "thresholds": {"low": 0.35, "high": 0.8},
     }
     path.write_text(json.dumps(payload))
@@ -81,9 +88,10 @@ def test_combine_no_kwargs_uses_defaults() -> None:
 
 
 def test_combine_does_not_mutate_caller_dicts() -> None:
-    weights = dict(DEFAULT_WEIGHTS)
+    from copy import deepcopy
+    weights = deepcopy(DEFAULT_WEIGHTS)
     thresholds = dict(DEFAULT_THRESHOLDS)
-    weights_snapshot = dict(weights)
+    weights_snapshot = deepcopy(weights)
     thresholds_snapshot = dict(thresholds)
     combine(_full_signals(0.6), negation_mismatch=True, weights=weights, thresholds=thresholds)
     assert weights == weights_snapshot
@@ -124,3 +132,28 @@ def test_combine_antonym_default_is_false() -> None:
     no_flag, _ = combine(signals, negation_mismatch=False)
     explicit_false, _ = combine(signals, negation_mismatch=False, antonym_mismatch=False)
     assert no_flag == explicit_false
+
+
+def test_combine_pure_semantic_match_reaches_match_label() -> None:
+    # surface signals all zero, semantic signals all 1.0 -> max() picks the semantic side
+    signals = {"tfidf": 0.0, "jaccard": 0.0, "ngram": 0.0, "order": 0.0,
+               "wordnet": 1.0, "soft_overlap": 1.0}
+    score, label = combine(signals, negation_mismatch=False)
+    assert score == pytest.approx(1.0)
+    assert label == "MATCH"
+
+
+def test_combine_pure_surface_match_reaches_match_label() -> None:
+    # mirror: surface group fires, semantic zero
+    signals = {"tfidf": 1.0, "jaccard": 1.0, "ngram": 1.0, "order": 1.0,
+               "wordnet": 0.0, "soft_overlap": 0.0}
+    score, label = combine(signals, negation_mismatch=False)
+    assert score == pytest.approx(1.0)
+    assert label == "MATCH"
+
+
+def test_combine_max_not_sum_no_double_counting() -> None:
+    # both groups firing at 1.0 must not exceed 1.0 (max, not sum)
+    signals = _full_signals(1.0)
+    score, _ = combine(signals, negation_mismatch=False)
+    assert score == pytest.approx(1.0)

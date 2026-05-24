@@ -74,3 +74,66 @@ def test_word_similarity_adjective_synonyms_score_high():
 def test_word_similarity_adjective_unrelated_stays_below_synonym():
     # unrelated adj pair must not approach the synonym ceiling
     assert word_similarity("sluggish", "purple") < word_similarity("slow", "sluggish")
+
+
+def test_alignment_sim_floor_constant_exists():
+    from wordnet_sim import WORDNET_FLOOR
+    assert 0.0 <= WORDNET_FLOOR < 1.0
+
+
+def test_alignment_sim_unrelated_noun_pair_now_near_zero():
+    # unrelated nouns used to sit ~0.47 from Wu-Palmer noise; rescale must crush them
+    score = alignment_sim(["banana", "umbrella"], ["volcano", "laptop"])
+    assert score < 0.1
+
+
+def test_alignment_sim_identical_after_rescale_is_one():
+    assert alignment_sim(["dog", "cat"], ["dog", "cat"]) == pytest.approx(1.0)
+
+
+def test_soft_overlap_threshold_constant_exists():
+    from wordnet_sim import SOFT_MATCH_THRESHOLD
+    assert 0.0 < SOFT_MATCH_THRESHOLD < 1.0
+
+
+def test_soft_overlap_identical_tokens_is_one():
+    from wordnet_sim import soft_overlap
+    assert soft_overlap(["car", "dog"], ["car", "dog"]) == pytest.approx(1.0)
+
+
+def test_soft_overlap_full_synonym_phrase_reaches_literal_magnitude():
+    # every word has a synonym partner -> close to literal match magnitude
+    from wordnet_sim import soft_overlap
+    score = soft_overlap(["car", "pause"], ["automobile", "halt"])
+    assert score >= 0.8
+
+
+def test_soft_overlap_unrelated_phrases_near_zero():
+    from wordnet_sim import soft_overlap
+    score = soft_overlap(["banana", "laptop"], ["volcano", "umbrella"])
+    assert score < 0.25
+
+
+def test_soft_overlap_synonym_beats_unrelated():
+    from wordnet_sim import soft_overlap
+    syn = soft_overlap(["car", "pause"], ["automobile", "halt"])
+    unrel = soft_overlap(["car", "pause"], ["banana", "umbrella"])
+    assert syn > unrel + 0.4
+
+
+def test_soft_overlap_partial_match_proportional():
+    # one word matches literally, one does not match at all
+    from wordnet_sim import soft_overlap
+    score = soft_overlap(["car", "xyz"], ["car", "qqq"])
+    assert score == pytest.approx(0.5)
+
+
+def test_soft_overlap_both_empty_returns_zero():
+    from wordnet_sim import soft_overlap
+    assert soft_overlap([], []) == 0.0
+
+
+def test_soft_overlap_one_empty_returns_zero():
+    from wordnet_sim import soft_overlap
+    assert soft_overlap([], ["dog"]) == 0.0
+    assert soft_overlap(["dog"], []) == 0.0

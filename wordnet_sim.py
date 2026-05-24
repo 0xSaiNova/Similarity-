@@ -1,7 +1,7 @@
 """WordNet-based word and alignment similarity."""
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from functools import lru_cache
 
 from nltk.corpus import wordnet
@@ -10,6 +10,9 @@ from preprocess import ensure_nltk_data
 
 
 _ALL_POS: tuple = (wordnet.NOUN, wordnet.VERB, wordnet.ADJ, wordnet.ADV)
+
+WORDNET_FLOOR: float = 0.45
+SOFT_MATCH_THRESHOLD: float = 0.6
 
 
 @lru_cache(maxsize=None)
@@ -50,10 +53,31 @@ def _directional_best_avg(src: Sequence[str], tgt: Sequence[str]) -> float:
 
 
 def alignment_sim(tokens_a: Sequence[str], tokens_b: Sequence[str]) -> float:
-    """Average best match word similarity in both directions; 0.0 if either list empty."""
+    """Avg best-match similarity in both directions, rescaled so the noise floor maps to 0."""
     if not tokens_a or not tokens_b:
         return 0.0
-    return (
+    raw = (
         _directional_best_avg(tokens_a, tokens_b)
         + _directional_best_avg(tokens_b, tokens_a)
     ) / 2.0
+    span = 1.0 - WORDNET_FLOOR
+    if span <= 0.0:
+        return 0.0
+    return max(0.0, (raw - WORDNET_FLOOR) / span)
+
+
+def _has_soft_match(token: str, others: Iterable[str]) -> bool:
+    for other in others:
+        if token == other or word_similarity(token, other) >= SOFT_MATCH_THRESHOLD:
+            return True
+    return False
+
+
+def soft_overlap(tokens_a: Sequence[str], tokens_b: Sequence[str]) -> float:
+    """Fraction of tokens with a literal or WordNet-thresholded match in the other list."""
+    total = len(tokens_a) + len(tokens_b)
+    if total == 0:
+        return 0.0
+    matches_a = sum(1 for t in tokens_a if _has_soft_match(t, tokens_b))
+    matches_b = sum(1 for t in tokens_b if _has_soft_match(t, tokens_a))
+    return (matches_a + matches_b) / total

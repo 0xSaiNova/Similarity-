@@ -23,10 +23,11 @@ def matcher(candidates: list[str]) -> Matcher:
     return Matcher(candidates)
 
 
-def test_compute_signals_returns_all_five(candidates: list[str]) -> None:
+def test_compute_signals_returns_all_six(candidates: list[str]) -> None:
     index = PhraseIndex(candidates)
     signals = compute_signals("the cat sat on the mat", "the cat sat on the mat", index)
     assert set(signals.keys()) == set(SIGNAL_NAMES)
+    assert len(signals) == 6
     for value in signals.values():
         assert -1e-9 <= value <= 1.0 + 1e-9
 
@@ -93,11 +94,14 @@ def test_matcher_loads_config_path(tmp_path, candidates: list[str]) -> None:
     import json
     config = tmp_path / "config.json"
     config.write_text(json.dumps({
-        "weights": {"tfidf": 1.0, "jaccard": 0.0, "wordnet": 0.0, "ngram": 0.0, "order": 0.0},
+        "weights": {
+            "surface": {"tfidf": 1.0, "jaccard": 0.0, "ngram": 0.0, "order": 0.0},
+            "semantic": {"wordnet": 0.0, "soft_overlap": 0.0},
+        },
         "thresholds": {"low": 0.1, "high": 0.5},
     }))
     m = Matcher(candidates, config_path=config)
-    assert m.weights["tfidf"] == 1.0
+    assert m.weights["surface"]["tfidf"] == 1.0
     assert m.thresholds["high"] == 0.5
 
 
