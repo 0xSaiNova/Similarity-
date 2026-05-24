@@ -96,6 +96,7 @@ class Phrase:
     has_negation: bool
 
 
+@lru_cache(maxsize=4096)
 def build_phrase(text: str) -> Phrase:
     """Build a Phrase from raw input text."""
     return Phrase(

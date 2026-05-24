@@ -27,3 +27,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Project instructions
+CLAUDE.md
