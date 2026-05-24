@@ -102,3 +102,25 @@ def test_load_config_missing_keys_raises(tmp_path: Path) -> None:
     path.write_text(json.dumps({"weights": {}, "thresholds": {}}))
     with pytest.raises(KeyError):
         load_config(path)
+
+
+def test_combine_antonym_mismatch_drops_score_well_below_clean() -> None:
+    signals = _full_signals(0.9)
+    clean_score, _ = combine(signals, negation_mismatch=False, antonym_mismatch=False)
+    ant_score, ant_label = combine(signals, negation_mismatch=False, antonym_mismatch=True)
+    assert ant_score < clean_score - 0.5
+    assert ant_label == "NO_MATCH"
+
+
+def test_combine_negation_and_antonym_compound() -> None:
+    signals = _full_signals(1.0)
+    both_score, _ = combine(signals, negation_mismatch=True, antonym_mismatch=True)
+    neg_only, _ = combine(signals, negation_mismatch=True, antonym_mismatch=False)
+    assert both_score < neg_only
+
+
+def test_combine_antonym_default_is_false() -> None:
+    signals = _full_signals(1.0)
+    no_flag, _ = combine(signals, negation_mismatch=False)
+    explicit_false, _ = combine(signals, negation_mismatch=False, antonym_mismatch=False)
+    assert no_flag == explicit_false

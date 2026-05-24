@@ -88,6 +88,39 @@ def detect_negation(text: str) -> bool:
     return False
 
 
+@lru_cache(maxsize=4096)
+def _wordnet_antonyms(word: str) -> frozenset[str]:
+    ensure_nltk_data()
+    out: set[str] = set()
+    for syn in wordnet.synsets(word):
+        for lemma in syn.lemmas():
+            for ant in lemma.antonyms():
+                out.add(ant.name().lower())
+    return frozenset(out)
+
+
+def _lemmas_keep_stops(text: str) -> set[str]:
+    """Tokenize + lemmatize without dropping stopwords; antonym lookup needs up/down/in/out."""
+    ensure_nltk_data()
+    tagged = nltk.pos_tag(word_tokenize(text.lower()))
+    lemma = _lemmatizer()
+    return {
+        lemma.lemmatize(token, _wordnet_pos(tag))
+        for token, tag in tagged
+        if _is_wordlike(token)
+    }
+
+
+def detect_antonym_mismatch(text_a: str, text_b: str) -> bool:
+    """True if any token in text_a has a WordNet antonym present in text_b."""
+    tokens_a = _lemmas_keep_stops(text_a)
+    tokens_b = _lemmas_keep_stops(text_b)
+    for token in tokens_a:
+        if _wordnet_antonyms(token) & tokens_b:
+            return True
+    return False
+
+
 @dataclass(frozen=True)
 class Phrase:
     """Raw text plus its normalized tokens and a negation flag."""

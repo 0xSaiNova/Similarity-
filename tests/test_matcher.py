@@ -62,6 +62,18 @@ def test_match_blocking_caps_result_count(matcher: Matcher) -> None:
     assert len(results) == 2
 
 
+def test_match_antonym_mismatch_demotes_candidate() -> None:
+    cands = ["scale up the backend services", "scale down the backend services"]
+    m = Matcher(cands)
+    results = m.match("scale up the backend services", k=2)
+    by_cand = {r.candidate: r for r in results}
+    same = by_cand["scale up the backend services"]
+    opposite = by_cand["scale down the backend services"]
+    assert same.antonym_mismatch is False
+    assert opposite.antonym_mismatch is True
+    assert opposite.score < same.score
+
+
 def test_match_negation_mismatch_demotes_candidate() -> None:
     cands = [
         "the system updates the cache",

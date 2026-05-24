@@ -3,7 +3,7 @@ import dataclasses
 
 import pytest
 
-from preprocess import Phrase, build_phrase, detect_negation, normalize
+from preprocess import Phrase, build_phrase, detect_antonym_mismatch, detect_negation, normalize
 
 
 def test_lowercase_and_punctuation_removed():
@@ -117,3 +117,27 @@ def test_phrase_is_frozen():
     p = build_phrase("test")
     with pytest.raises(dataclasses.FrozenInstanceError):
         p.raw = "other"  # type: ignore[misc]
+
+
+def test_detect_antonym_mismatch_up_vs_down():
+    assert detect_antonym_mismatch("scale up the service", "scale down the service") is True
+
+
+def test_detect_antonym_mismatch_increase_vs_decrease():
+    assert detect_antonym_mismatch("increase the rate limit", "decrease the rate limit") is True
+
+
+def test_detect_antonym_mismatch_enable_vs_disable():
+    assert detect_antonym_mismatch("enable caching", "disable caching") is True
+
+
+def test_detect_antonym_mismatch_no_antonym_returns_false():
+    assert detect_antonym_mismatch("migrate the database", "move the database") is False
+
+
+def test_detect_antonym_mismatch_synonyms_do_not_trigger():
+    assert detect_antonym_mismatch("pause the pipeline", "halt the pipeline") is False
+
+
+def test_detect_antonym_mismatch_symmetric():
+    assert detect_antonym_mismatch("scale down the service", "scale up the service") is True

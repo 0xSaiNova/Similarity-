@@ -83,6 +83,22 @@ def test_order_sim_one_empty_returns_zero():
     assert order_sim([], ["a", "b"]) == 0.0
 
 
-def test_order_sim_subsequence_preserves_score():
-    # lcs is "ac" of length 2, longer list has length 3
-    assert order_sim(["a", "b", "c"], ["a", "x", "c"]) == pytest.approx(2 / 3)
+def test_order_sim_inserted_token_breaks_bigrams():
+    # inserting "x" between "a" and "c" wipes the shared bigrams
+    assert order_sim(["a", "b", "c"], ["a", "x", "c"]) == 0.0
+
+
+def test_order_sim_partial_bigram_overlap():
+    # bigrams a: {(a,b),(b,c),(c,d)}; bigrams b: {(a,b),(b,x),(x,d)} -> 1 / 5
+    assert order_sim(["a", "b", "c", "d"], ["a", "b", "x", "d"]) == pytest.approx(1 / 5)
+
+
+def test_order_sim_single_token_phrase_set_compare():
+    # too short for bigrams; falls back to set compare
+    assert order_sim(["a"], ["a"]) == 1.0
+    assert order_sim(["a"], ["b"]) == 0.0
+
+
+def test_order_sim_swapped_pair_is_zero():
+    # role swap: (subject, verb, object) vs (object, verb, subject) shares no bigrams
+    assert order_sim(["producer", "push", "consumer"], ["consumer", "push", "producer"]) == 0.0

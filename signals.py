@@ -34,23 +34,15 @@ def char_ngram_sim(text_a: str, text_b: str, n: int = 3) -> float:
     return dot / (norm_a * norm_b)
 
 
-def _lcs_length(a: Sequence[str], b: Sequence[str]) -> int:
-    if not a or not b:
-        return 0
-    prev = [0] * (len(b) + 1)
-    for token_a in a:
-        curr = [0] * (len(b) + 1)
-        for j, token_b in enumerate(b, start=1):
-            if token_a == token_b:
-                curr[j] = prev[j - 1] + 1
-            else:
-                curr[j] = max(prev[j], curr[j - 1])
-        prev = curr
-    return prev[-1]
-
-
 def order_sim(tokens_a: Sequence[str], tokens_b: Sequence[str]) -> float:
-    """LCS length normalized by the longer list; 0.0 if either list empty."""
+    """Jaccard over adjacent token bigrams; collapses sharply on word-order changes."""
     if not tokens_a or not tokens_b:
         return 0.0
-    return _lcs_length(tokens_a, tokens_b) / max(len(tokens_a), len(tokens_b))
+    if len(tokens_a) < 2 or len(tokens_b) < 2:
+        return 1.0 if set(tokens_a) == set(tokens_b) else 0.0
+    bigrams_a = set(zip(tokens_a[:-1], tokens_a[1:]))
+    bigrams_b = set(zip(tokens_b[:-1], tokens_b[1:]))
+    union = bigrams_a | bigrams_b
+    if not union:
+        return 0.0
+    return len(bigrams_a & bigrams_b) / len(union)

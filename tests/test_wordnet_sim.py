@@ -64,3 +64,13 @@ def test_alignment_sim_empty_returns_zero():
 
 def test_alignment_sim_identical_tokens_is_one():
     assert alignment_sim(["dog", "cat"], ["dog", "cat"]) == pytest.approx(1.0)
+
+
+def test_word_similarity_adjective_synonyms_score_high():
+    # slow and sluggish share the adjective synset dull.s.05
+    assert word_similarity("slow", "sluggish") >= 0.9
+
+
+def test_word_similarity_adjective_unrelated_stays_below_synonym():
+    # unrelated adj pair must not approach the synonym ceiling
+    assert word_similarity("sluggish", "purple") < word_similarity("slow", "sluggish")
