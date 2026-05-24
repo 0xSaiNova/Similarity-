@@ -1,0 +1,147 @@
+"""Tests for backends: base interface, registry, classical equality regression."""
+from __future__ import annotations
+
+import pytest
+
+from backends import Backend, BackendMatchResult, available, get_backend
+from backends.classical import ClassicalBackend
+from combiner import DEFAULT_PENALTIES, DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS, _label_for, combine
+from index import PhraseIndex
+from matcher import compute_signals
+from preprocess import build_phrase, detect_antonym_mismatch
+from signals import detect_order_mismatch
+
+
+CORPUS: list[str] = [
+    "the cat sat on the mat",
+    "a dog ran in the park",
+    "scale up the backend services",
+    "scale down the backend services",
+    "the system updates the cache",
+    "the system does not update the cache",
+    "the producer pushes messages to the consumer",
+    "the consumer pushes messages to the producer",
+]
+
+
+def _direct_combine(corpus: list[str], a: str, b: str) -> tuple[float, str]:
+    index = PhraseIndex(corpus)
+    pa = build_phrase(a)
+    pb = build_phrase(b)
+    sigs = compute_signals(a, b, index, pa, pb)
+    return combine(
+        sigs,
+        pa.has_negation != pb.has_negation,
+        detect_antonym_mismatch(a, b),
+        detect_order_mismatch(pa.tokens, pb.tokens),
+        DEFAULT_WEIGHTS, DEFAULT_THRESHOLDS, DEFAULT_PENALTIES,
+    )
+
+
+def test_available_lists_classical() -> None:
+    assert "classical" in available()
+
+
+def test_get_backend_returns_classical_instance() -> None:
+    backend = get_backend("classical", CORPUS)
+    assert isinstance(backend, ClassicalBackend)
+
+
+def test_get_backend_unknown_name_raises() -> None:
+    with pytest.raises(ValueError, match="unknown backend"):
+        get_backend("does_not_exist", CORPUS)
+
+
+def test_backend_requires_non_empty_corpus() -> None:
+    with pytest.raises(ValueError):
+        ClassicalBackend([])
+
+
+def test_classical_thresholds_match_defaults() -> None:
+    backend = ClassicalBackend(CORPUS)
+    low, high = backend.thresholds
+    assert low == DEFAULT_THRESHOLDS["low"]
+    assert high == DEFAULT_THRESHOLDS["high"]
+
+
+@pytest.mark.parametrize("pair", [
+    ("the cat sat on the mat", "the cat sat on the mat"),
+    ("scale up the backend services", "scale down the backend services"),
+    ("the system updates the cache", "the system does not update the cache"),
+    (
+        "the producer pushes messages to the consumer",
+        "the consumer pushes messages to the producer",
+    ),
+    ("the cat sat on the mat", "a dog ran in the park"),
+    ("a dog ran in the park", "the cat sat on the mat"),
+])
+def test_classical_score_and_label_match_direct_engine(pair: tuple[str, str]) -> None:
+    a, b = pair
+    backend = ClassicalBackend(CORPUS)
+    expected_score, expected_label = _direct_combine(CORPUS, a, b)
+    score = backend.score_pair(a, b)
+    assert score == expected_score
+    assert backend.label(score) == expected_label
+
+
+def test_classical_label_delegates_to_combiner_label_for() -> None:
+    backend = ClassicalBackend(CORPUS)
+    for s in (0.0, 0.05, DEFAULT_THRESHOLDS["low"] - 1e-9, DEFAULT_THRESHOLDS["low"],
+              0.5, DEFAULT_THRESHOLDS["high"] - 1e-9, DEFAULT_THRESHOLDS["high"], 0.95, 1.0):
+        assert backend.label(s) == _label_for(s, DEFAULT_THRESHOLDS)
+
+
+def test_classical_explain_returns_six_signal_dict() -> None:
+    backend = ClassicalBackend(CORPUS)
+    sigs = backend.explain("the cat sat on the mat", "the cat sat on the mat")
+    assert sigs is not None
+    assert set(sigs.keys()) == {"tfidf", "jaccard", "wordnet", "ngram", "order", "soft_overlap"}
+    for v in sigs.values():
+        assert 0.0 - 1e-9 <= v <= 1.0 + 1e-9
+
+
+def test_classical_score_in_unit_interval() -> None:
+    backend = ClassicalBackend(CORPUS)
+    for a in CORPUS:
+        for b in CORPUS:
+            assert 0.0 <= backend.score_pair(a, b) <= 1.0
+
+
+def test_classical_negation_demotes_score() -> None:
+    backend = ClassicalBackend(CORPUS)
+    same = backend.score_pair("the system updates the cache", "the system updates the cache")
+    negated = backend.score_pair(
+        "the system updates the cache", "the system does not update the cache",
+    )
+    assert negated < same
+
+
+class _DummyBackend(Backend):
+    """Minimal subclass used to exercise the base class defaults."""
+
+    def score_pair(self, phrase_a: str, phrase_b: str) -> float:
+        return 0.42
+
+    @property
+    def thresholds(self) -> tuple[float, float]:
+        return 0.4, 0.7
+
+
+def test_base_label_default_uses_thresholds() -> None:
+    d = _DummyBackend(["x"])
+    assert d.label(0.8) == "MATCH"
+    assert d.label(0.5) == "PARTIAL"
+    assert d.label(0.1) == "NO_MATCH"
+    assert d.label(0.4) == "PARTIAL"
+    assert d.label(0.7) == "MATCH"
+
+
+def test_base_explain_default_returns_none() -> None:
+    d = _DummyBackend(["x"])
+    assert d.explain("a", "b") is None
+
+
+def test_backend_match_result_is_frozen_dataclass() -> None:
+    r = BackendMatchResult(candidate="x", score=0.5, label="PARTIAL", signals=None)
+    with pytest.raises(Exception):
+        r.score = 0.9  # type: ignore[misc]

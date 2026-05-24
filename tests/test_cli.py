@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from backends import BackendMatchResult
 from cli import load_candidates, match
-from matcher import MatchResult
 
 
 def test_load_candidates_reads_json_list(tmp_path: Path) -> None:
@@ -61,7 +61,7 @@ def test_match_wrapper_returns_ranked_results() -> None:
     ]
     results = match("a cat on a mat", candidates, k=4)
     assert len(results) == 4
-    assert all(isinstance(r, MatchResult) for r in results)
+    assert all(isinstance(r, BackendMatchResult) for r in results)
     scores = [r.score for r in results]
     assert scores == sorted(scores, reverse=True)
     assert results[0].candidate == "the cat sat on the mat"

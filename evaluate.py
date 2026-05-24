@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
-from combiner import combine, load_config
+from backends import get_backend
 from index import PhraseIndex
 from matcher import compute_signals
 from preprocess import build_phrase, detect_antonym_mismatch
@@ -175,31 +175,22 @@ def _roc_auc(results: Sequence[PairResult]) -> float:
     return float(roc_auc_score(y_true, y_score))
 
 
-@dataclass(frozen=True)
-class _EvalCachedPair:
-    pair: GoldPair
-    signals: dict[str, float]
-    negation_mismatch: bool
-    antonym_mismatch: bool
-    order_mismatch: bool
-
-
-def evaluate(gold: Sequence[GoldPair], config_path: str | Path | None = None) -> Report:
-    """Score every gold pair directly and produce metrics."""
+def evaluate(gold: Sequence[GoldPair], backend: str = "classical") -> Report:
+    """Score every gold pair through the selected backend and produce metrics."""
     if not gold:
         raise ValueError("evaluate requires at least one gold pair")
-    weights, thresholds, penalties = load_config(config_path if config_path else "config.json")
-    cache = build_cache(list(gold), _EvalCachedPair)
+    # TODO(E5): re-introduce per-backend config loading (thresholds/weights/penalties).
+    # The previous load_config("config.json") path was dropped when the backend
+    # abstraction landed; classical thresholds are hard-coded defaults for now.
+    corpus = sorted({p.phrase_a for p in gold} | {p.phrase_b for p in gold})
+    bk = get_backend(backend, corpus)
     results: list[PairResult] = []
-    for c in cache:
-        score, label = combine(
-            c.signals, c.negation_mismatch, c.antonym_mismatch, c.order_mismatch,
-            weights, thresholds, penalties,
-        )
+    for p in gold:
+        score = bk.score_pair(p.phrase_a, p.phrase_b)
         results.append(PairResult(
-            pair_id=c.pair.id, category=c.pair.category, phenomenon=c.pair.phenomenon,
-            predicted_score=score, gold_score=c.pair.gold_score,
-            predicted_label=label, gold_label=c.pair.label,
+            pair_id=p.id, category=p.category, phenomenon=p.phenomenon,
+            predicted_score=score, gold_score=p.gold_score,
+            predicted_label=bk.label(score), gold_label=p.label,
         ))
     per_label = _per_label_metrics(results)
     mae = sum(abs(r.predicted_score - r.gold_score) for r in results) / len(results)
@@ -251,10 +242,10 @@ def format_report(report: Report) -> str:
     return "\n".join(lines)
 
 
-def main(gold_path: str | Path = "data/gold_pairs.json", config_path: str | Path | None = None) -> None:
-    """Load the gold set, evaluate, print a readable report."""
+def main(gold_path: str | Path = "data/gold_pairs.json", backend: str = "classical") -> None:
+    """Load the gold set, evaluate via the selected backend, print a readable report."""
     gold = load_gold(gold_path)
-    report = evaluate(gold, config_path=config_path)
+    report = evaluate(gold, backend=backend)
     print(format_report(report))
 
 
