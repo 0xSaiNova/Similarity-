@@ -10,6 +10,7 @@ from combiner import combine, load_config
 from index import PhraseIndex
 from matcher import compute_signals
 from preprocess import build_phrase, detect_antonym_mismatch
+from signals import detect_order_mismatch
 
 LABELS: tuple[str, ...] = ("MATCH", "PARTIAL", "NO_MATCH")
 REQUIRED_FIELDS: tuple[str, ...] = (
@@ -126,10 +127,12 @@ def evaluate(gold: Sequence[GoldPair], config_path: str | Path | None = None) ->
     results: list[PairResult] = []
     for pair in gold:
         signals = compute_signals(pair.phrase_a, pair.phrase_b, index)
-        neg_a = build_phrase(pair.phrase_a).has_negation
-        neg_b = build_phrase(pair.phrase_b).has_negation
+        a_phrase = build_phrase(pair.phrase_a)
+        b_phrase = build_phrase(pair.phrase_b)
+        neg = a_phrase.has_negation != b_phrase.has_negation
         ant = detect_antonym_mismatch(pair.phrase_a, pair.phrase_b)
-        score, label = combine(signals, neg_a != neg_b, ant, weights, thresholds)
+        ord_mm = detect_order_mismatch(a_phrase.tokens, b_phrase.tokens)
+        score, label = combine(signals, neg, ant, ord_mm, weights, thresholds)
         results.append(PairResult(
             pair_id=pair.id,
             category=pair.category,

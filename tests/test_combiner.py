@@ -157,3 +157,27 @@ def test_combine_max_not_sum_no_double_counting() -> None:
     signals = _full_signals(1.0)
     score, _ = combine(signals, negation_mismatch=False)
     assert score == pytest.approx(1.0)
+
+
+def test_combine_order_mismatch_pulls_match_into_partial() -> None:
+    signals = _full_signals(1.0)
+    clean, clean_label = combine(signals, negation_mismatch=False)
+    pulled, pulled_label = combine(signals, negation_mismatch=False, order_mismatch=True)
+    assert clean_label == "MATCH"
+    assert pulled_label == "PARTIAL"
+    assert pulled < clean
+
+
+def test_combine_order_penalty_is_moderate_not_strong() -> None:
+    # order penalty should leave a 1.0 above the low threshold (not crushed to NO_MATCH)
+    signals = _full_signals(1.0)
+    pulled, label = combine(signals, negation_mismatch=False, order_mismatch=True)
+    assert label == "PARTIAL"
+    assert pulled >= DEFAULT_THRESHOLDS["low"]
+
+
+def test_combine_order_default_is_false() -> None:
+    signals = _full_signals(1.0)
+    no_flag, _ = combine(signals, negation_mismatch=False)
+    explicit_false, _ = combine(signals, negation_mismatch=False, order_mismatch=False)
+    assert no_flag == explicit_false

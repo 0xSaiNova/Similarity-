@@ -5,6 +5,9 @@ import math
 from collections import Counter
 from collections.abc import Sequence
 
+SET_OVERLAP_THRESHOLD: float = 0.9
+ORDER_SCRAMBLE_THRESHOLD: float = 0.5
+
 
 def jaccard(tokens_a: Sequence[str], tokens_b: Sequence[str]) -> float:
     """Intersection over union of the two token sets; 0.0 if both empty."""
@@ -46,3 +49,12 @@ def order_sim(tokens_a: Sequence[str], tokens_b: Sequence[str]) -> float:
     if not union:
         return 0.0
     return len(bigrams_a & bigrams_b) / len(union)
+
+
+def detect_order_mismatch(tokens_a: Sequence[str], tokens_b: Sequence[str]) -> bool:
+    """True when token sets nearly match but adjacent bigrams diverge: scrambled wording."""
+    if not tokens_a or not tokens_b:
+        return False
+    if jaccard(tokens_a, tokens_b) < SET_OVERLAP_THRESHOLD:
+        return False
+    return order_sim(tokens_a, tokens_b) < ORDER_SCRAMBLE_THRESHOLD

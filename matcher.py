@@ -8,7 +8,7 @@ from pathlib import Path
 from combiner import DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS, combine, load_config
 from index import PhraseIndex
 from preprocess import build_phrase, detect_antonym_mismatch
-from signals import char_ngram_sim, jaccard, order_sim
+from signals import char_ngram_sim, detect_order_mismatch, jaccard, order_sim
 from wordnet_sim import alignment_sim, soft_overlap
 
 
@@ -21,6 +21,7 @@ class MatchResult:
     signals: dict[str, float]
     negation_mismatch: bool
     antonym_mismatch: bool
+    order_mismatch: bool
 
 
 def compute_signals(phrase_a: str, phrase_b: str, index: PhraseIndex) -> dict[str, float]:
@@ -62,7 +63,12 @@ class Matcher:
             signals = compute_signals(query, cand, self.index)
             neg_mismatch = query_phrase.has_negation != cand_phrase.has_negation
             ant_mismatch = detect_antonym_mismatch(query, cand)
-            score, label = combine(signals, neg_mismatch, ant_mismatch, self.weights, self.thresholds)
-            results.append(MatchResult(cand, score, label, signals, neg_mismatch, ant_mismatch))
+            ord_mismatch = detect_order_mismatch(query_phrase.tokens, cand_phrase.tokens)
+            score, label = combine(
+                signals, neg_mismatch, ant_mismatch, ord_mismatch, self.weights, self.thresholds,
+            )
+            results.append(MatchResult(
+                cand, score, label, signals, neg_mismatch, ant_mismatch, ord_mismatch,
+            ))
         results.sort(key=lambda r: r.score, reverse=True)
         return results

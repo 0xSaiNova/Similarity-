@@ -102,3 +102,38 @@ def test_order_sim_single_token_phrase_set_compare():
 def test_order_sim_swapped_pair_is_zero():
     # role swap: (subject, verb, object) vs (object, verb, subject) shares no bigrams
     assert order_sim(["producer", "push", "consumer"], ["consumer", "push", "producer"]) == 0.0
+
+
+def test_detect_order_mismatch_role_swap_fires():
+    from signals import detect_order_mismatch
+    # same token set, bigrams diverge
+    assert detect_order_mismatch(
+        ["producer", "push", "message", "consumer"],
+        ["consumer", "push", "message", "producer"],
+    ) is True
+
+
+def test_detect_order_mismatch_identical_order_does_not_fire():
+    from signals import detect_order_mismatch
+    assert detect_order_mismatch(["a", "b", "c"], ["a", "b", "c"]) is False
+
+
+def test_detect_order_mismatch_disjoint_tokens_does_not_fire():
+    from signals import detect_order_mismatch
+    # set Jaccard too low to be a "same words, scrambled" case
+    assert detect_order_mismatch(["a", "b", "c"], ["x", "y", "z"]) is False
+
+
+def test_detect_order_mismatch_one_extra_token_does_not_fire():
+    from signals import detect_order_mismatch
+    # set Jaccard 3/4 = 0.75 < 0.9
+    assert detect_order_mismatch(
+        ["migrate", "database", "cloud"],
+        ["migrate", "cloud", "config", "database"],
+    ) is False
+
+
+def test_detect_order_mismatch_empty_returns_false():
+    from signals import detect_order_mismatch
+    assert detect_order_mismatch([], ["a"]) is False
+    assert detect_order_mismatch(["a"], []) is False

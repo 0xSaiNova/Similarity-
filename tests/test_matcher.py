@@ -63,6 +63,22 @@ def test_match_blocking_caps_result_count(matcher: Matcher) -> None:
     assert len(results) == 2
 
 
+def test_match_order_mismatch_demotes_candidate() -> None:
+    cands = [
+        "the producer pushes messages to the consumer",
+        "the consumer pushes messages to the producer",
+    ]
+    m = Matcher(cands)
+    results = m.match("the producer pushes messages to the consumer", k=2)
+    by_cand = {r.candidate: r for r in results}
+    same = by_cand["the producer pushes messages to the consumer"]
+    swap = by_cand["the consumer pushes messages to the producer"]
+    assert same.order_mismatch is False
+    assert swap.order_mismatch is True
+    assert swap.score < same.score
+    assert swap.label != "MATCH"
+
+
 def test_match_antonym_mismatch_demotes_candidate() -> None:
     cands = ["scale up the backend services", "scale down the backend services"]
     m = Matcher(cands)

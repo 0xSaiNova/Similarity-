@@ -17,6 +17,7 @@ DEFAULT_THRESHOLDS: dict[str, float] = {"low": 0.4, "high": 0.7}
 
 NEGATION_PENALTY: float = 0.3
 ANTONYM_PENALTY: float = 0.3
+ORDER_PENALTY: float = 0.5
 
 
 def _label_for(score: float, thresholds: dict[str, float]) -> str:
@@ -31,10 +32,11 @@ def combine(
     signals: dict[str, float],
     negation_mismatch: bool,
     antonym_mismatch: bool = False,
+    order_mismatch: bool = False,
     weights: dict[str, dict[str, float]] | None = None,
     thresholds: dict[str, float] | None = None,
 ) -> tuple[float, str]:
-    """Max of surface vs semantic weighted sums, with negation/antonym gates."""
+    """Max of surface vs semantic weighted sums, with negation/antonym/order gates."""
     w = DEFAULT_WEIGHTS if weights is None else weights
     t = DEFAULT_THRESHOLDS if thresholds is None else thresholds
     surface_score = sum(w["surface"][n] * signals[n] for n in SURFACE_SIGNALS)
@@ -44,6 +46,8 @@ def combine(
         score *= NEGATION_PENALTY
     if antonym_mismatch:
         score *= ANTONYM_PENALTY
+    if order_mismatch:
+        score *= ORDER_PENALTY
     score = max(0.0, min(1.0, score))
     return score, _label_for(score, t)
 
