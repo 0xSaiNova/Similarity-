@@ -10,7 +10,11 @@ import numpy as np
 from sklearn.model_selection import StratifiedKFold
 
 from combiner import DEFAULT_PENALTIES, DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS, combine
-from evaluate import LABELS, GoldPair, PairResult, _per_label_metrics, build_cache, load_gold
+from evaluate import LABELS, GoldPair, PairResult, _per_label_metrics, load_gold
+from index import PhraseIndex
+from matcher import compute_signals
+from preprocess import build_phrase, detect_antonym_mismatch
+from signals import detect_order_mismatch
 
 CV_FOLDS: int = 5
 SEED: int = 42
@@ -30,9 +34,22 @@ class CachedPair:
     order_mismatch: bool
 
 
-def cache_features(gold: list[GoldPair]) -> list[CachedPair]:
+def cache_features(gold: Sequence[GoldPair]) -> list[CachedPair]:
     """Precompute signals + gate flags for every gold pair."""
-    return build_cache(gold, CachedPair)
+    all_phrases = sorted({p.phrase_a for p in gold} | {p.phrase_b for p in gold})
+    index = PhraseIndex(all_phrases)
+    out: list[CachedPair] = []
+    for p in gold:
+        a = build_phrase(p.phrase_a)
+        b = build_phrase(p.phrase_b)
+        out.append(CachedPair(
+            pair=p,
+            signals=compute_signals(p.phrase_a, p.phrase_b, index, a, b),
+            negation_mismatch=a.has_negation != b.has_negation,
+            antonym_mismatch=detect_antonym_mismatch(p.phrase_a, p.phrase_b),
+            order_mismatch=detect_order_mismatch(a.tokens, b.tokens),
+        ))
+    return out
 
 
 def _predict(

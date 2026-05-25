@@ -5,13 +5,8 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
 
 from backends import get_backend
-from index import PhraseIndex
-from matcher import compute_signals
-from preprocess import build_phrase, detect_antonym_mismatch
-from signals import detect_order_mismatch
 
 LABELS: tuple[str, ...] = ("MATCH", "PARTIAL", "NO_MATCH")
 REQUIRED_FIELDS: tuple[str, ...] = (
@@ -108,25 +103,6 @@ def load_gold(path: str | Path) -> list[GoldPair]:
     return [_validate_pair(item, i + 1) for i, item in enumerate(raw)]
 
 
-# todo(e5): move this to tune.py, only place that uses it. then drop the matcher/index/preprocess/signals imports up top.
-def build_cache(gold: Sequence[GoldPair], factory: Callable[..., Any]) -> list[Any]:
-    """Precompute (signals, gate flags) for every gold pair, wrap via factory(pair=, signals=, ...)."""
-    all_phrases = sorted({p.phrase_a for p in gold} | {p.phrase_b for p in gold})
-    index = PhraseIndex(all_phrases)
-    out: list[Any] = []
-    for p in gold:
-        a = build_phrase(p.phrase_a)
-        b = build_phrase(p.phrase_b)
-        out.append(factory(
-            pair=p,
-            signals=compute_signals(p.phrase_a, p.phrase_b, index, a, b),
-            negation_mismatch=a.has_negation != b.has_negation,
-            antonym_mismatch=detect_antonym_mismatch(p.phrase_a, p.phrase_b),
-            order_mismatch=detect_order_mismatch(a.tokens, b.tokens),
-        ))
-    return out
-
-
 def macro_f1(metrics: dict[str, LabelMetrics]) -> float:
     """Mean F1 across labels."""
     return sum(m.f1 for m in metrics.values()) / len(metrics)
@@ -180,9 +156,6 @@ def evaluate(gold: Sequence[GoldPair], backend: str = "classical") -> Report:
     """Score every gold pair through the selected backend and produce metrics."""
     if not gold:
         raise ValueError("evaluate requires at least one gold pair")
-    # TODO(E5): re-introduce per-backend config loading (thresholds/weights/penalties).
-    # The previous load_config("config.json") path was dropped when the backend
-    # abstraction landed; classical thresholds are hard-coded defaults for now.
     corpus = sorted({p.phrase_a for p in gold} | {p.phrase_b for p in gold})
     bk = get_backend(backend, corpus)
     results: list[PairResult] = []
