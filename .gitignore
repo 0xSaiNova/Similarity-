@@ -28,5 +28,8 @@ Thumbs.db
 # Logs
 *.log
 
+# Embedding caches
+.cache/
+
 # Project instructions
 CLAUDE.md

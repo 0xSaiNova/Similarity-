@@ -5,10 +5,12 @@ from collections.abc import Sequence
 
 from backends.base import Backend
 from backends.classical import ClassicalBackend
+from backends.gpt import GptBackend
 from backends.use import UseBackend
 
 _REGISTRY: dict[str, type[Backend]] = {
     "classical": ClassicalBackend,
+    "gpt": GptBackend,
     "use": UseBackend,
 }
 
