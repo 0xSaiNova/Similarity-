@@ -46,24 +46,23 @@ def test_clamp_unit_in_range_passthrough() -> None:
 
 
 def test_thresholds_are_use_constants() -> None:
-    backend = _backend_with_mock_model({"x": np.array([1.0])})
+    backend = UseBackend(["x"])
     assert backend.thresholds == (USE_LOW, USE_HIGH)
-
-
-def test_explain_defaults_to_none() -> None:
-    backend = _backend_with_mock_model({"x": np.array([1.0])})
-    assert backend.explain("x", "x") is None
 
 
 def test_use_registered_in_registry() -> None:
     assert "use" in available()
 
 
-def test_get_backend_use_returns_instance_without_loading_model() -> None:
-    _reset_use_model_singleton()
+def test_get_backend_use_does_not_call_model_loader(monkeypatch) -> None:
+    from backends import use as use_module
+
+    def _explode() -> None:
+        raise AssertionError("model loader called during construction")
+
+    monkeypatch.setattr(use_module, "_load_use_model", _explode)
     backend = get_backend("use", ["x"])
     assert isinstance(backend, UseBackend)
-    assert UseBackend._model is None
 
 
 def test_importing_backends_package_does_not_import_tensorflow() -> None:
@@ -81,25 +80,18 @@ class _MockEncoder:
         return np.stack([self._vectors[p] for p in phrases])
 
 
-def _reset_use_model_singleton() -> None:
-    UseBackend._model = None
-
-
-def _backend_with_mock_model(vectors: dict[str, np.ndarray]) -> UseBackend:
-    UseBackend._model = _MockEncoder(vectors)
-    return UseBackend(list(vectors.keys()))
-
-
 @pytest.fixture
-def mocked() -> UseBackend:
+def mocked(monkeypatch) -> UseBackend:
     vectors = {
         "alpha": np.array([1.0, 0.0, 0.0]),
         "beta": np.array([0.0, 1.0, 0.0]),
         "alpha_clone": np.array([1.0, 0.0, 0.0]),
         "anti": np.array([-1.0, 0.0, 0.0]),
     }
-    yield _backend_with_mock_model(vectors)
-    _reset_use_model_singleton()
+    from backends import use as use_module
+    encoder = _MockEncoder(vectors)
+    monkeypatch.setattr(use_module, "_load_use_model", lambda: encoder)
+    return UseBackend(list(vectors.keys()))
 
 
 def test_score_pair_identical_phrases_is_one(mocked: UseBackend) -> None:
@@ -124,12 +116,16 @@ def test_score_pair_caches_embeddings(mocked: UseBackend) -> None:
     assert "beta" in mocked._cache
 
 
+def test_score_with_explain_returns_score_and_none(mocked: UseBackend) -> None:
+    score, signals = mocked.score_with_explain("alpha", "alpha")
+    assert score == pytest.approx(1.0)
+    assert signals is None
+
+
 def test_load_use_model_raises_when_tf_hub_missing(monkeypatch) -> None:
     from backends import use as use_module
 
-    def _fail_import(*_args, **_kwargs):
-        raise ImportError("simulated missing dep")
-
+    use_module._load_use_model.cache_clear()
     real_import = __import__
 
     def fake_import(name, *args, **kwargs):
@@ -140,3 +136,4 @@ def test_load_use_model_raises_when_tf_hub_missing(monkeypatch) -> None:
     monkeypatch.setattr("builtins.__import__", fake_import)
     with pytest.raises(ImportError, match="USE backend requires"):
         use_module._load_use_model()
+    use_module._load_use_model.cache_clear()

@@ -1,6 +1,7 @@
 """USE backend: Universal Sentence Encoder v4 via TensorFlow Hub."""
 from __future__ import annotations
 
+import functools
 from collections.abc import Sequence
 
 import numpy as np
@@ -12,10 +13,12 @@ USE_LOW: float = 0.50
 USE_HIGH: float = 0.75
 _MISSING_DEPS_MSG: str = (
     "USE backend requires the 'tensorflow' and 'tensorflow-hub' extras. "
-    "Install them with: pip install -r requirements-use.txt"
+    "Install with: pip install -r requirements-use.txt (Python 3.10 to 3.13; "
+    "no TensorFlow wheel for 3.14+ yet)."
 )
 
 
+@functools.lru_cache(maxsize=1)
 def _load_use_model():
     try:
         import tensorflow_hub as hub
@@ -41,23 +44,15 @@ def clamp_unit(value: float) -> float:
 class UseBackend(Backend):
     """Cosine similarity over Universal Sentence Encoder v4 embeddings."""
 
-    _model = None
-
     def __init__(self, corpus: Sequence[str]) -> None:
         super().__init__(corpus)
         self._cache: dict[str, np.ndarray] = {}
-
-    @classmethod
-    def _get_model(cls):
-        if cls._model is None:
-            cls._model = _load_use_model()
-        return cls._model
 
     def _embed(self, phrase: str) -> np.ndarray:
         cached = self._cache.get(phrase)
         if cached is not None:
             return cached
-        model = self._get_model()
+        model = _load_use_model()
         vec = np.asarray(model([phrase]))[0]
         self._cache[phrase] = vec
         return vec

@@ -29,15 +29,16 @@ def match(
     k: int = 20,
 ) -> list[BackendMatchResult]:
     """Score every candidate via the selected backend, return top-k by score desc."""
+    # todo(e5): no blocking here, scores every cand. fine for small corpora. revisit if it gets slow.
     backend = get_backend(backend_name, list(candidates))
     scored: list[BackendMatchResult] = []
     for cand in candidates:
-        score = backend.score_pair(query, cand)
+        score, signals = backend.score_with_explain(query, cand)
         scored.append(BackendMatchResult(
             candidate=cand,
             score=score,
             label=backend.label(score),
-            signals=backend.explain(query, cand),
+            signals=signals,
         ))
     scored.sort(key=lambda r: r.score, reverse=True)
     return scored[:k]

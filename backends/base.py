@@ -41,6 +41,8 @@ class Backend(abc.ABC):
             return "PARTIAL"
         return "NO_MATCH"
 
-    def explain(self, phrase_a: str, phrase_b: str) -> dict[str, float] | None:
-        """Optional per-signal breakdown. Backends without one return None."""
-        return None
+    def score_with_explain(
+        self, phrase_a: str, phrase_b: str,
+    ) -> tuple[float, dict[str, float] | None]:
+        """Return (score, signals). Override to expose a per-signal breakdown alongside the score."""
+        return self.score_pair(phrase_a, phrase_b), None

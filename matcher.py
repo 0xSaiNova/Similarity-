@@ -13,6 +13,7 @@ from signals import char_ngram_sim, detect_order_mismatch, jaccard, order_sim
 from wordnet_sim import alignment_sim, soft_overlap
 
 
+# todo(e5): kill Matcher + MatchResult, only their own tests still hit them. keep compute_signals though, classical needs it.
 @dataclass(frozen=True)
 class MatchResult:
     """One scored candidate."""

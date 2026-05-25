@@ -108,6 +108,7 @@ def load_gold(path: str | Path) -> list[GoldPair]:
     return [_validate_pair(item, i + 1) for i, item in enumerate(raw)]
 
 
+# todo(e5): move this to tune.py, only place that uses it. then drop the matcher/index/preprocess/signals imports up top.
 def build_cache(gold: Sequence[GoldPair], factory: Callable[..., Any]) -> list[Any]:
     """Precompute (signals, gate flags) for every gold pair, wrap via factory(pair=, signals=, ...)."""
     all_phrases = sorted({p.phrase_a for p in gold} | {p.phrase_b for p in gold})

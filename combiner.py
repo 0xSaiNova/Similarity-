@@ -17,7 +17,8 @@ DEFAULT_THRESHOLDS: dict[str, float] = {"low": 0.4, "high": 0.7}
 DEFAULT_PENALTIES: dict[str, float] = {"negation": 0.3, "antonym": 0.3, "order": 0.5}
 
 
-def _label_for(score: float, thresholds: dict[str, float]) -> str:
+def label_for(score: float, thresholds: dict[str, float]) -> str:
+    """Map a score to MATCH / PARTIAL / NO_MATCH using the provided thresholds."""
     if score >= thresholds["high"]:
         return "MATCH"
     if score >= thresholds["low"]:
@@ -48,7 +49,7 @@ def combine(
     if order_mismatch:
         score *= p["order"]
     score = max(0.0, min(1.0, score))
-    return score, _label_for(score, t)
+    return score, label_for(score, t)
 
 
 WEIGHT_SUM_TOL: float = 1e-6

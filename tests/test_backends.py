@@ -5,7 +5,7 @@ import pytest
 
 from backends import Backend, BackendMatchResult, available, get_backend
 from backends.classical import ClassicalBackend
-from combiner import DEFAULT_PENALTIES, DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS, _label_for, combine
+from combiner import DEFAULT_PENALTIES, DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS, combine
 from index import PhraseIndex
 from matcher import compute_signals
 from preprocess import build_phrase, detect_antonym_mismatch
@@ -84,20 +84,37 @@ def test_classical_score_and_label_match_direct_engine(pair: tuple[str, str]) ->
     assert backend.label(score) == expected_label
 
 
-def test_classical_label_delegates_to_combiner_label_for() -> None:
+def test_classical_label_emits_expected_strings_around_thresholds() -> None:
     backend = ClassicalBackend(CORPUS)
-    for s in (0.0, 0.05, DEFAULT_THRESHOLDS["low"] - 1e-9, DEFAULT_THRESHOLDS["low"],
-              0.5, DEFAULT_THRESHOLDS["high"] - 1e-9, DEFAULT_THRESHOLDS["high"], 0.95, 1.0):
-        assert backend.label(s) == _label_for(s, DEFAULT_THRESHOLDS)
+    low = DEFAULT_THRESHOLDS["low"]
+    high = DEFAULT_THRESHOLDS["high"]
+    assert backend.label(0.0) == "NO_MATCH"
+    assert backend.label(low - 1e-6) == "NO_MATCH"
+    assert backend.label(low) == "PARTIAL"
+    assert backend.label((low + high) / 2) == "PARTIAL"
+    assert backend.label(high - 1e-6) == "PARTIAL"
+    assert backend.label(high) == "MATCH"
+    assert backend.label(1.0) == "MATCH"
 
 
-def test_classical_explain_returns_six_signal_dict() -> None:
+def test_classical_score_with_explain_returns_score_and_six_signals() -> None:
     backend = ClassicalBackend(CORPUS)
-    sigs = backend.explain("the cat sat on the mat", "the cat sat on the mat")
+    score, sigs = backend.score_with_explain(
+        "the cat sat on the mat", "the cat sat on the mat",
+    )
+    assert 0.0 <= score <= 1.0
     assert sigs is not None
     assert set(sigs.keys()) == {"tfidf", "jaccard", "wordnet", "ngram", "order", "soft_overlap"}
     for v in sigs.values():
         assert 0.0 - 1e-9 <= v <= 1.0 + 1e-9
+
+
+def test_classical_score_with_explain_matches_score_pair() -> None:
+    backend = ClassicalBackend(CORPUS)
+    a, b = "the cat sat on the mat", "a dog ran in the park"
+    only_score = backend.score_pair(a, b)
+    score, _ = backend.score_with_explain(a, b)
+    assert score == only_score
 
 
 def test_classical_score_in_unit_interval() -> None:
@@ -136,9 +153,11 @@ def test_base_label_default_uses_thresholds() -> None:
     assert d.label(0.7) == "MATCH"
 
 
-def test_base_explain_default_returns_none() -> None:
+def test_base_score_with_explain_default_returns_score_and_none() -> None:
     d = _DummyBackend(["x"])
-    assert d.explain("a", "b") is None
+    score, signals = d.score_with_explain("a", "b")
+    assert score == 0.42
+    assert signals is None
 
 
 def test_backend_match_result_is_frozen_dataclass() -> None:

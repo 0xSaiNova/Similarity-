@@ -10,6 +10,7 @@ Pluggable backends. classical (WordNet plus 6 signals, default). use (Universal 
     pip install -r requirements-use.txt    # add USE backend (TensorFlow + TF Hub)
 
 NLTK data downloads on first run. USE model loads on first use.
+USE extras need Python 3.10 to 3.13 (no TensorFlow wheel for 3.14+ yet).
 
 ## Use
 

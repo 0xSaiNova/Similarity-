@@ -16,7 +16,6 @@ def _require_tf_extras() -> None:
 def test_use_identical_phrases_score_near_one() -> None:
     _require_tf_extras()
     from backends.use import UseBackend
-    UseBackend._model = None
     backend = UseBackend(["hello world"])
     score = backend.score_pair("hello world", "hello world")
     assert score > 0.99
