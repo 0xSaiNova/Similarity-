@@ -27,3 +27,15 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if "slow" in item.keywords:
             item.add_marker(skip_slow)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_config_path(monkeypatch, tmp_path):
+    """Point every backend's DEFAULT_CONFIG_PATH at a missing tmp file so tests see defaults."""
+    missing = tmp_path / "absent_config.json"
+    from backends import classical as classical_module
+    from backends import gpt as gpt_module
+    from backends import use as use_module
+    monkeypatch.setattr(classical_module, "DEFAULT_CONFIG_PATH", missing)
+    monkeypatch.setattr(gpt_module, "DEFAULT_CONFIG_PATH", missing)
+    monkeypatch.setattr(use_module, "DEFAULT_CONFIG_PATH", missing)

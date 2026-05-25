@@ -1,7 +1,7 @@
-"""Tune combiner thresholds on the gold set; adopt only if CV beats default."""
+"""Tune classical combiner thresholds on the gold set + dispatch per backend tuners."""
 from __future__ import annotations
 
-import json
+import argparse
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,12 +9,26 @@ from pathlib import Path
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
 
-from combiner import DEFAULT_PENALTIES, DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS, combine
+from combiner import (
+    DEFAULT_PENALTIES,
+    DEFAULT_THRESHOLDS,
+    DEFAULT_WEIGHTS,
+    combine,
+    write_backend_block,
+)
 from evaluate import LABELS, GoldPair, PairResult, _per_label_metrics, load_gold
 from index import PhraseIndex
 from matcher import compute_signals
 from preprocess import build_phrase, detect_antonym_mismatch
 from signals import detect_order_mismatch
+from tune_backend import (
+    EMBEDDING_BACKENDS,
+    EMBEDDING_DEFAULTS,
+    cross_validate_backend_thresholds,
+    score_gold_with_backend,
+    search_backend_thresholds,
+    write_backend_thresholds,
+)
 
 CV_FOLDS: int = 5
 SEED: int = 42
@@ -87,7 +101,7 @@ def params_to_thresholds(params: Sequence[float]) -> dict[str, float]:
 
 
 def threshold_objective(params: Sequence[float], cache: list[CachedPair]) -> float:
-    """Macro-F1 with fixed default weights + penalties, only thresholds vary."""
+    """Macro F1 with fixed default weights + penalties, only thresholds vary."""
     thresholds = params_to_thresholds(params)
     if thresholds["high"] - thresholds["low"] < MIN_THRESHOLD_GAP:
         return 0.0
@@ -128,7 +142,7 @@ def cross_validate_thresholds(
     seed: int = SEED,
     step: float = GRID_STEP,
 ) -> tuple[float, float, dict[str, float]]:
-    """Stratified k-fold CV. Returns (tuned_mean_macro, default_mean_macro, tuned_per_label)."""
+    """Stratified k fold CV. Returns (tuned_mean_macro, default_mean_macro, tuned_per_label)."""
     labels = np.array([c.pair.label for c in cache])
     splitter = StratifiedKFold(n_splits=folds, shuffle=True, random_state=seed)
     tuned_macros: list[float] = []
@@ -157,9 +171,12 @@ def write_config(
     weights: dict, thresholds: dict, penalties: dict,
     path: str | Path = CONFIG_PATH,
 ) -> None:
-    """Serialize tuned config in the load_config schema."""
-    data = {"weights": weights, "thresholds": thresholds, "penalties": penalties}
-    Path(path).write_text(json.dumps(data, indent=2))
+    """Serialize the classical block into config.json, preserving other backend blocks."""
+    write_backend_block(
+        "classical",
+        {"weights": weights, "thresholds": thresholds, "penalties": penalties},
+        path,
+    )
 
 
 def should_adopt(candidate_cv_macro: float, baseline_cv_macro: float) -> bool:
@@ -174,32 +191,69 @@ def _print_label_metrics(per_label: dict) -> None:
         print(f"  {label:<10} {f1:>6.3f}")
 
 
-def main() -> None:
-    gold = load_gold("data/gold_pairs.json")
+def _run_classical(gold: list[GoldPair]) -> None:
     cache = cache_features(gold)
-
-    print("=== Threshold grid search — 5-fold CV ===")
+    print("=== classical threshold grid search, 5 fold CV ===")
     tuned_cv, default_cv, tuned_per_label = cross_validate_thresholds(cache)
     print(f"Tuned CV macro F1:   {tuned_cv:.3f}")
     print(f"Default CV macro F1: {default_cv:.3f}")
     _print_label_metrics(tuned_per_label)
-
-    print("\n=== Adoption decision ===")
+    print("\n=== adoption decision ===")
     if should_adopt(tuned_cv, default_cv):
         in_sample_macro, params = search_thresholds(cache)
         thresholds = params_to_thresholds(params)
         write_config(DEFAULT_WEIGHTS, thresholds, DEFAULT_PENALTIES)
         print(f"ADOPTED: tuned CV {tuned_cv:.3f} > default CV {default_cv:.3f}")
-        print(f"In-sample macro F1 after fitting on all {len(cache)}: {in_sample_macro:.3f}")
+        print(f"In sample macro F1 after fitting on all {len(cache)}: {in_sample_macro:.3f}")
         print(f"Tuned thresholds: low={thresholds['low']:.3f} high={thresholds['high']:.3f}")
-        print(f"Written to {CONFIG_PATH}")
+        print(f"Classical block written to {CONFIG_PATH}")
     else:
         print(f"REJECTED: tuned CV {tuned_cv:.3f} <= default CV {default_cv:.3f}")
-        if CONFIG_PATH.exists():
-            CONFIG_PATH.unlink()
-            print(f"Removed stale {CONFIG_PATH}; evaluate.py will use built-in defaults")
-        else:
-            print(f"No {CONFIG_PATH} present; evaluate.py already on defaults")
+        print(f"Classical block in {CONFIG_PATH} (if any) left untouched")
+
+
+def _run_embedding_backend(backend_name: str, gold: list[GoldPair]) -> None:
+    default = EMBEDDING_DEFAULTS[backend_name]
+    print(f"=== {backend_name} threshold grid search, 5 fold CV ===")
+    scored = score_gold_with_backend(backend_name, gold)
+    tuned_cv, default_cv, tuned_per_label = cross_validate_backend_thresholds(
+        scored, default, folds=CV_FOLDS, seed=SEED, step=GRID_STEP, min_gap=MIN_THRESHOLD_GAP,
+    )
+    print(f"Tuned CV macro F1:   {tuned_cv:.3f}")
+    print(f"Default CV macro F1: {default_cv:.3f}")
+    _print_label_metrics(tuned_per_label)
+    print("\n=== adoption decision ===")
+    if should_adopt(tuned_cv, default_cv):
+        in_sample_macro, (low, high) = search_backend_thresholds(
+            scored, step=GRID_STEP, min_gap=MIN_THRESHOLD_GAP,
+        )
+        write_backend_thresholds(backend_name, low, high, CONFIG_PATH)
+        print(f"ADOPTED: tuned CV {tuned_cv:.3f} > default CV {default_cv:.3f}")
+        print(f"In sample macro F1: {in_sample_macro:.3f}")
+        print(f"Tuned thresholds: low={low:.3f} high={high:.3f}")
+        print(f"{backend_name} block written to {CONFIG_PATH}")
+    else:
+        print(f"REJECTED: tuned CV {tuned_cv:.3f} <= default CV {default_cv:.3f}")
+        print(f"{backend_name} block in {CONFIG_PATH} (if any) left untouched")
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Tune thresholds per backend on the gold set.")
+    parser.add_argument(
+        "--backend", default="classical",
+        choices=("classical",) + EMBEDDING_BACKENDS,
+        help="which backend to tune",
+    )
+    parser.add_argument(
+        "--gold", default="data/gold_pairs.json",
+        help="path to the gold set JSON",
+    )
+    args = parser.parse_args(argv)
+    gold = load_gold(args.gold)
+    if args.backend == "classical":
+        _run_classical(gold)
+    else:
+        _run_embedding_backend(args.backend, gold)
 
 
 if __name__ == "__main__":

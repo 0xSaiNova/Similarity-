@@ -63,30 +63,58 @@ def _validate_weight_group(weights: dict[str, float], group: str) -> None:
         )
 
 
+def load_backend_block(name: str, path: str | Path) -> dict | None:
+    """Return data[name] from a per backend config.json, or None when not configured."""
+    p = Path(path)
+    if not p.exists():
+        return None
+    data = json.loads(p.read_text())
+    return data.get(name)
+
+
+def write_backend_block(name: str, block: dict, path: str | Path) -> None:
+    """Merge block into config.json under the given backend key, preserving siblings."""
+    p = Path(path)
+    data = json.loads(p.read_text()) if p.exists() else {}
+    data[name] = block
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(data, indent=2, sort_keys=True))
+
+
 def load_config(
     path: str | Path,
 ) -> tuple[dict[str, dict[str, float]], dict[str, float], dict[str, float]]:
-    """Read config.json or return defaults. Returns (weights, thresholds, penalties)."""
-    p = Path(path)
-    if not p.exists():
+    """Read the classical block from config.json or return defaults. Returns (weights, thresholds, penalties)."""
+    block = load_backend_block("classical", path)
+    if block is None:
         return deepcopy(DEFAULT_WEIGHTS), dict(DEFAULT_THRESHOLDS), dict(DEFAULT_PENALTIES)
-    data = json.loads(p.read_text())
     weights = {
-        "surface": {name: float(data["weights"]["surface"][name]) for name in SURFACE_SIGNALS},
-        "semantic": {name: float(data["weights"]["semantic"][name]) for name in SEMANTIC_SIGNALS},
+        "surface": {name: float(block["weights"]["surface"][name]) for name in SURFACE_SIGNALS},
+        "semantic": {name: float(block["weights"]["semantic"][name]) for name in SEMANTIC_SIGNALS},
     }
     _validate_weight_group(weights["surface"], "surface")
     _validate_weight_group(weights["semantic"], "semantic")
     thresholds = {
-        "low": float(data["thresholds"]["low"]),
-        "high": float(data["thresholds"]["high"]),
+        "low": float(block["thresholds"]["low"]),
+        "high": float(block["thresholds"]["high"]),
     }
-    if "penalties" in data:
+    if "penalties" in block:
         penalties = {
-            "negation": float(data["penalties"]["negation"]),
-            "antonym": float(data["penalties"]["antonym"]),
-            "order": float(data["penalties"]["order"]),
+            "negation": float(block["penalties"]["negation"]),
+            "antonym": float(block["penalties"]["antonym"]),
+            "order": float(block["penalties"]["order"]),
         }
     else:
         penalties = dict(DEFAULT_PENALTIES)
     return weights, thresholds, penalties
+
+
+def load_backend_thresholds(
+    name: str, path: str | Path, default: tuple[float, float],
+) -> tuple[float, float]:
+    """Read the (low, high) thresholds for a backend from config.json or fall back to default."""
+    block = load_backend_block(name, path)
+    if block is None or "thresholds" not in block:
+        return default
+    t = block["thresholds"]
+    return float(t["low"]), float(t["high"])

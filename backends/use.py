@@ -3,14 +3,17 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Sequence
+from pathlib import Path
 
 import numpy as np
 
 from backends.base import Backend
+from combiner import load_backend_thresholds
 
 USE_MODEL_URL: str = "https://tfhub.dev/google/universal-sentence-encoder/4"
 USE_LOW: float = 0.50
 USE_HIGH: float = 0.75
+DEFAULT_CONFIG_PATH: Path = Path(__file__).resolve().parent.parent / "config.json"
 _MISSING_DEPS_MSG: str = (
     "USE backend requires the 'tensorflow' and 'tensorflow-hub' extras. "
     "Install with: pip install -r requirements-use.txt (Python 3.10 to 3.13; "
@@ -44,9 +47,14 @@ def clamp_unit(value: float) -> float:
 class UseBackend(Backend):
     """Cosine similarity over Universal Sentence Encoder v4 embeddings."""
 
-    def __init__(self, corpus: Sequence[str]) -> None:
+    def __init__(
+        self, corpus: Sequence[str], config_path: str | Path | None = None,
+    ) -> None:
         super().__init__(corpus)
         self._cache: dict[str, np.ndarray] = {}
+        if config_path is None:
+            config_path = DEFAULT_CONFIG_PATH
+        self._thresholds = load_backend_thresholds("use", config_path, (USE_LOW, USE_HIGH))
 
     def _embed(self, phrase: str) -> np.ndarray:
         cached = self._cache.get(phrase)
@@ -62,4 +70,4 @@ class UseBackend(Backend):
 
     @property
     def thresholds(self) -> tuple[float, float]:
-        return USE_LOW, USE_HIGH
+        return self._thresholds

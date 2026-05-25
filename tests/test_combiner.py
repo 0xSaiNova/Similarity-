@@ -11,7 +11,10 @@ from combiner import (
     DEFAULT_WEIGHTS,
     SIGNAL_NAMES,
     combine,
+    load_backend_block,
+    load_backend_thresholds,
     load_config,
+    write_backend_block,
 )
 
 
@@ -66,17 +69,17 @@ def test_load_config_missing_file_returns_defaults(tmp_path: Path) -> None:
 
 def test_load_config_reads_weights_and_thresholds(tmp_path: Path) -> None:
     path = tmp_path / "config.json"
-    payload = {
+    classical = {
         "weights": {
             "surface": {"tfidf": 0.1, "jaccard": 0.2, "ngram": 0.4, "order": 0.3},
             "semantic": {"wordnet": 0.6, "soft_overlap": 0.4},
         },
         "thresholds": {"low": 0.35, "high": 0.8},
     }
-    path.write_text(json.dumps(payload))
+    path.write_text(json.dumps({"classical": classical}))
     weights, thresholds, penalties = load_config(path)
-    assert weights == payload["weights"]
-    assert thresholds == payload["thresholds"]
+    assert weights == classical["weights"]
+    assert thresholds == classical["thresholds"]
     # penalties fall back to defaults when omitted
     from combiner import DEFAULT_PENALTIES
     assert penalties == DEFAULT_PENALTIES
@@ -84,7 +87,7 @@ def test_load_config_reads_weights_and_thresholds(tmp_path: Path) -> None:
 
 def test_load_config_reads_penalties_when_present(tmp_path: Path) -> None:
     path = tmp_path / "config.json"
-    payload = {
+    classical = {
         "weights": {
             "surface": {"tfidf": 0.25, "jaccard": 0.25, "ngram": 0.25, "order": 0.25},
             "semantic": {"wordnet": 0.5, "soft_overlap": 0.5},
@@ -92,9 +95,9 @@ def test_load_config_reads_penalties_when_present(tmp_path: Path) -> None:
         "thresholds": {"low": 0.4, "high": 0.7},
         "penalties": {"negation": 0.2, "antonym": 0.4, "order": 0.6},
     }
-    path.write_text(json.dumps(payload))
+    path.write_text(json.dumps({"classical": classical}))
     _, _, penalties = load_config(path)
-    assert penalties == payload["penalties"]
+    assert penalties == classical["penalties"]
 
 
 def test_combine_no_kwargs_uses_defaults() -> None:
@@ -127,9 +130,79 @@ def test_load_config_malformed_json_raises(tmp_path: Path) -> None:
 
 def test_load_config_missing_keys_raises(tmp_path: Path) -> None:
     path = tmp_path / "incomplete.json"
-    path.write_text(json.dumps({"weights": {}, "thresholds": {}}))
+    path.write_text(json.dumps({"classical": {"weights": {}, "thresholds": {}}}))
     with pytest.raises(KeyError):
         load_config(path)
+
+
+def test_load_backend_block_returns_none_for_missing_file(tmp_path: Path) -> None:
+    assert load_backend_block("use", tmp_path / "nope.json") is None
+
+
+def test_load_backend_block_returns_none_when_key_absent(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"classical": {"thresholds": {"low": 0.1, "high": 0.9}}}))
+    assert load_backend_block("use", path) is None
+
+
+def test_load_backend_block_returns_block_when_present(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    payload = {"use": {"thresholds": {"low": 0.5, "high": 0.8}}}
+    path.write_text(json.dumps(payload))
+    assert load_backend_block("use", path) == payload["use"]
+
+
+def test_write_backend_block_creates_file_with_single_block(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    block = {"thresholds": {"low": 0.6, "high": 0.9}}
+    write_backend_block("gpt", block, path)
+    data = json.loads(path.read_text())
+    assert data == {"gpt": block}
+
+
+def test_write_backend_block_preserves_siblings(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    existing = {
+        "classical": {
+            "weights": {
+                "surface": {"tfidf": 0.25, "jaccard": 0.25, "ngram": 0.25, "order": 0.25},
+                "semantic": {"wordnet": 0.5, "soft_overlap": 0.5},
+            },
+            "thresholds": {"low": 0.4, "high": 0.7},
+        },
+    }
+    path.write_text(json.dumps(existing))
+    write_backend_block("gpt", {"thresholds": {"low": 0.65, "high": 0.85}}, path)
+    data = json.loads(path.read_text())
+    assert data["classical"] == existing["classical"]
+    assert data["gpt"] == {"thresholds": {"low": 0.65, "high": 0.85}}
+
+
+def test_write_backend_block_overwrites_same_key(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    write_backend_block("use", {"thresholds": {"low": 0.5, "high": 0.75}}, path)
+    write_backend_block("use", {"thresholds": {"low": 0.45, "high": 0.8}}, path)
+    data = json.loads(path.read_text())
+    assert data["use"]["thresholds"] == {"low": 0.45, "high": 0.8}
+
+
+def test_load_backend_thresholds_returns_default_when_block_missing(tmp_path: Path) -> None:
+    low, high = load_backend_thresholds("use", tmp_path / "nope.json", (0.5, 0.75))
+    assert (low, high) == (0.5, 0.75)
+
+
+def test_load_backend_thresholds_returns_default_when_thresholds_missing(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"use": {}}))
+    low, high = load_backend_thresholds("use", path, (0.5, 0.75))
+    assert (low, high) == (0.5, 0.75)
+
+
+def test_load_backend_thresholds_reads_from_block(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"gpt": {"thresholds": {"low": 0.66, "high": 0.91}}}))
+    low, high = load_backend_thresholds("gpt", path, (0.65, 0.85))
+    assert (low, high) == (0.66, 0.91)
 
 
 def test_combine_antonym_mismatch_drops_score_well_below_clean() -> None:

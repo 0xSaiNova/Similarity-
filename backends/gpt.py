@@ -1,4 +1,4 @@
-"""GPT backend: OpenAI text-embedding cosine similarity with persistent disk cache."""
+"""GPT backend: OpenAI compatible text embedding cosine similarity with persistent disk cache."""
 from __future__ import annotations
 
 import json
@@ -11,10 +11,13 @@ import numpy as np
 
 from backends.base import Backend
 from backends.use import clamp_unit, cosine
+from combiner import load_backend_thresholds
 
 GPT_DEFAULT_MODEL: str = "text-embedding-3-small"
+GPT_MODEL_ENV: str = "GPT_MODEL"
 GPT_LOW: float = 0.65
 GPT_HIGH: float = 0.85
+DEFAULT_CONFIG_PATH: Path = Path(__file__).resolve().parent.parent / "config.json"
 _DEFAULT_CACHE_DIR: Path = Path(".cache")
 _MISSING_KEY_MSG: str = (
     "GPT backend requires the OPENAI_API_KEY environment variable. "
@@ -27,7 +30,12 @@ _MISSING_DEP_MSG: str = (
 
 
 def _load_client() -> Any:
-    """Lazy import openai, return an authenticated client. Raises if key or library missing."""
+    """Lazy import openai, return an authenticated client. Raises if key or library missing.
+
+    Reads OPENAI_API_KEY (key) and OPENAI_BASE_URL (optional, picked up by the openai SDK
+    automatically) so OpenAI compatible gateways like OpenRouter can be used by exporting
+    OPENAI_BASE_URL=https://openrouter.ai/api/v1 plus GPT_MODEL=openai/text-embedding-3-small.
+    """
     if not os.environ.get("OPENAI_API_KEY"):
         raise RuntimeError(_MISSING_KEY_MSG)
     try:
@@ -39,25 +47,36 @@ def _load_client() -> Any:
 
 def _default_cache_path(model: str) -> Path:
     """Per model cache file under .cache/ in the working directory."""
-    return _DEFAULT_CACHE_DIR / f"gpt_embeddings_{model}.json"
+    safe_model = model.replace("/", "_")
+    return _DEFAULT_CACHE_DIR / f"gpt_embeddings_{safe_model}.json"
+
+
+def _resolve_model(model: str | None) -> str:
+    if model is not None:
+        return model
+    return os.environ.get(GPT_MODEL_ENV, GPT_DEFAULT_MODEL)
 
 
 class GptBackend(Backend):
-    """Cosine similarity over OpenAI text embedding vectors with a persistent on disk cache."""
+    """Cosine similarity over OpenAI compatible text embedding vectors with a persistent on disk cache."""
 
     def __init__(
         self,
         corpus: Sequence[str],
-        model: str = GPT_DEFAULT_MODEL,
+        model: str | None = None,
         cache_path: Path | str | None = None,
+        config_path: str | Path | None = None,
     ) -> None:
         super().__init__(corpus)
-        self._model: str = model
+        self._model: str = _resolve_model(model)
         self._cache_path: Path = (
-            Path(cache_path) if cache_path is not None else _default_cache_path(model)
+            Path(cache_path) if cache_path is not None else _default_cache_path(self._model)
         )
         self._cache: dict[str, np.ndarray] = self._load_cache()
         self._client: Any = None
+        if config_path is None:
+            config_path = DEFAULT_CONFIG_PATH
+        self._thresholds = load_backend_thresholds("gpt", config_path, (GPT_LOW, GPT_HIGH))
 
     def _load_cache(self) -> dict[str, np.ndarray]:
         if not self._cache_path.exists():
@@ -87,4 +106,4 @@ class GptBackend(Backend):
 
     @property
     def thresholds(self) -> tuple[float, float]:
-        return GPT_LOW, GPT_HIGH
+        return self._thresholds
