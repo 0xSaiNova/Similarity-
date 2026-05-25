@@ -9,14 +9,17 @@ import pytest
 from evaluate import (
     LABELS,
     BinaryMetrics,
+    CategoryMetrics,
     GoldPair,
     LabelMetrics,
     PairResult,
     Report,
     _binary_metrics,
     _confusion,
+    _per_category_metrics,
     _per_label_metrics,
     _roc_auc,
+    compare_backends,
     evaluate,
     load_gold,
 )
@@ -248,3 +251,81 @@ def test_evaluate_includes_binary_and_auc() -> None:
     assert 0.0 <= report.binary.recall <= 1.0
     assert 0.0 <= report.binary.f1 <= 1.0
     assert 0.0 <= report.roc_auc <= 1.0
+
+
+def _result_in(category: str, pred: str, gold: str, *, pred_score: float = 0.5) -> PairResult:
+    return PairResult(
+        pair_id=1, category=category, phenomenon="x",
+        predicted_score=pred_score, gold_score=0.5,
+        predicted_label=pred, gold_label=gold,
+    )
+
+
+def test_per_category_metrics_groups_by_category() -> None:
+    results = [
+        _result_in("cat_a", "MATCH", "MATCH", pred_score=0.9),
+        _result_in("cat_a", "NO_MATCH", "NO_MATCH", pred_score=0.1),
+        _result_in("cat_b", "PARTIAL", "PARTIAL", pred_score=0.5),
+    ]
+    out = _per_category_metrics(results)
+    assert set(out.keys()) == {"cat_a", "cat_b"}
+    assert out["cat_a"].count == 2
+    assert out["cat_b"].count == 1
+
+
+def test_per_category_metrics_returns_category_metrics_with_all_fields() -> None:
+    results = [
+        _result_in("cat_a", "MATCH", "MATCH", pred_score=0.9),
+        _result_in("cat_a", "NO_MATCH", "NO_MATCH", pred_score=0.1),
+    ]
+    out = _per_category_metrics(results)
+    metrics = out["cat_a"]
+    assert isinstance(metrics, CategoryMetrics)
+    assert 0.0 <= metrics.macro_f1 <= 1.0
+    assert 0.0 <= metrics.binary_f1 <= 1.0
+
+
+def test_evaluate_report_includes_per_category() -> None:
+    gold = load_gold(GOLD_PATH)
+    report = evaluate(gold)
+    assert isinstance(report.per_category, dict)
+    assert len(report.per_category) >= 1
+    for cat_metrics in report.per_category.values():
+        assert isinstance(cat_metrics, CategoryMetrics)
+        assert cat_metrics.count >= 1
+
+
+def test_compare_backends_returns_report_for_each_name() -> None:
+    gold = load_gold(GOLD_PATH)
+    out = compare_backends(gold, names=("classical",))
+    assert set(out.keys()) == {"classical"}
+    assert isinstance(out["classical"], Report)
+
+
+def test_compare_backends_marks_unavailable_on_construction_error(monkeypatch) -> None:
+    import evaluate as ev_mod
+    real_get = ev_mod.get_backend
+    def fake_get(name, corpus):
+        if name == "use":
+            raise ImportError("USE backend disabled for test")
+        return real_get(name, corpus)
+    monkeypatch.setattr(ev_mod, "get_backend", fake_get)
+    gold = load_gold(GOLD_PATH)
+    out = compare_backends(gold, names=("classical", "use"))
+    assert isinstance(out["classical"], Report)
+    assert isinstance(out["use"], str)
+    assert "unavailable" in out["use"].lower()
+
+
+def test_compare_backends_marks_unavailable_on_runtime_error(monkeypatch) -> None:
+    import evaluate as ev_mod
+    real_get = ev_mod.get_backend
+    def fake_get(name, corpus):
+        if name == "gpt":
+            raise RuntimeError("OPENAI_API_KEY missing")
+        return real_get(name, corpus)
+    monkeypatch.setattr(ev_mod, "get_backend", fake_get)
+    gold = load_gold(GOLD_PATH)
+    out = compare_backends(gold, names=("gpt",))
+    assert isinstance(out["gpt"], str)
+    assert "OPENAI_API_KEY" in out["gpt"]

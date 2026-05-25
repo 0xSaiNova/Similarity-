@@ -56,6 +56,15 @@ class BinaryMetrics:
 
 
 @dataclass(frozen=True)
+class CategoryMetrics:
+    """Metrics restricted to one gold category bucket."""
+    count: int
+    macro_f1: float
+    binary_f1: float
+    roc_auc: float
+
+
+@dataclass(frozen=True)
 class Report:
     """Full evaluation report."""
     total: int
@@ -66,6 +75,7 @@ class Report:
     worst: list[PairResult]
     binary: BinaryMetrics
     roc_auc: float
+    per_category: dict[str, CategoryMetrics]
 
 
 def _validate_pair(raw: dict, line: int) -> GoldPair:
@@ -152,6 +162,22 @@ def _roc_auc(results: Sequence[PairResult]) -> float:
     return float(roc_auc_score(y_true, y_score))
 
 
+def _per_category_metrics(results: Sequence[PairResult]) -> dict[str, CategoryMetrics]:
+    """Group results by gold category and compute macro F1 + binary F1 + ROC AUC for each."""
+    by_category: dict[str, list[PairResult]] = {}
+    for r in results:
+        by_category.setdefault(r.category, []).append(r)
+    out: dict[str, CategoryMetrics] = {}
+    for category, items in by_category.items():
+        macro = macro_f1(_per_label_metrics(items))
+        binary = _binary_metrics(items).f1
+        auc = _roc_auc(items)
+        out[category] = CategoryMetrics(
+            count=len(items), macro_f1=macro, binary_f1=binary, roc_auc=auc,
+        )
+    return out
+
+
 def evaluate(gold: Sequence[GoldPair], backend: str = "classical") -> Report:
     """Score every gold pair through the selected backend and produce metrics."""
     if not gold:
@@ -178,49 +204,53 @@ def evaluate(gold: Sequence[GoldPair], backend: str = "classical") -> Report:
         worst=worst,
         binary=_binary_metrics(results),
         roc_auc=_roc_auc(results),
+        per_category=_per_category_metrics(results),
     )
 
 
-def format_report(report: Report) -> str:
-    """Format a Report for printing."""
-    lines: list[str] = []
-    lines.append(f"Total pairs: {report.total}")
-    lines.append("")
-    lines.append("Per label:")
-    lines.append(f"  {'label':<10} {'precision':>10} {'recall':>10} {'f1':>10}")
-    for label, m in report.per_label.items():
-        lines.append(f"  {label:<10} {m.precision:>10.3f} {m.recall:>10.3f} {m.f1:>10.3f}")
-    lines.append(f"Macro F1: {report.macro_f1:.3f}")
-    lines.append(f"Mean absolute error (score): {report.mae:.3f}")
-    lines.append("")
-    lines.append("Confusion matrix (rows=gold, cols=predicted):")
-    header = "  " + "".join(f"{lab:>10}" for lab in LABELS)
-    lines.append(header)
-    for gold in LABELS:
-        row = f"  {gold:<10}" + "".join(f"{report.confusion[gold][pred]:>10}" for pred in LABELS)
-        lines.append(row)
-    lines.append("")
-    lines.append("Binary view (CANDIDATE = MATCH or PARTIAL vs NO_MATCH):")
-    b = report.binary
-    lines.append(f"  precision {b.precision:.3f}   recall {b.recall:.3f}   f1 {b.f1:.3f}")
-    lines.append(f"  ROC AUC of raw score: {report.roc_auc:.3f}")
-    lines.append("")
-    lines.append("Worst 10 mismatches:")
-    lines.append(f"  {'id':>4} {'category':<28} {'phenomenon':<22} {'pred':>6} {'gold':>6} {'pred_label':<10} {'gold_label':<10}")
-    for r in report.worst:
-        lines.append(
-            f"  {r.pair_id:>4} {r.category:<28} {r.phenomenon:<22} "
-            f"{r.predicted_score:>6.3f} {r.gold_score:>6.3f} "
-            f"{r.predicted_label:<10} {r.gold_label:<10}"
-        )
-    return "\n".join(lines)
+def compare_backends(
+    gold: Sequence[GoldPair], names: Sequence[str],
+) -> dict[str, Report | str]:
+    """Run evaluate for each backend; return Report on success or an unavailable string on failure."""
+    out: dict[str, Report | str] = {}
+    for name in names:
+        try:
+            out[name] = evaluate(gold, backend=name)
+        except (ImportError, RuntimeError, ValueError) as exc:
+            out[name] = f"unavailable: {exc}"
+    return out
 
 
-def main(gold_path: str | Path = "data/gold_pairs.json", backend: str = "classical") -> None:
-    """Load the gold set, evaluate via the selected backend, print a readable report."""
-    gold = load_gold(gold_path)
-    report = evaluate(gold, backend=backend)
-    print(format_report(report))
+DEFAULT_COMPARE_NAMES: tuple[str, ...] = ("classical", "use", "gpt")
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    """CLI entry: --backend X picks one backend; --compare runs every backend side by side."""
+    import argparse
+
+    from evaluate_report import format_comparison, format_report
+
+    parser = argparse.ArgumentParser(description="Evaluate the matcher against the gold set.")
+    parser.add_argument(
+        "--gold", default="data/gold_pairs.json",
+        help="path to the gold set JSON",
+    )
+    parser.add_argument(
+        "--backend", default="classical",
+        help="which backend to evaluate (ignored when --compare is set)",
+    )
+    parser.add_argument(
+        "--compare", action="store_true",
+        help="run every default backend (classical, use, gpt) side by side",
+    )
+    args = parser.parse_args(argv)
+    gold = load_gold(args.gold)
+    if args.compare:
+        reports = compare_backends(gold, names=DEFAULT_COMPARE_NAMES)
+        print(format_comparison(reports))
+    else:
+        report = evaluate(gold, backend=args.backend)
+        print(format_report(report))
 
 
 if __name__ == "__main__":
