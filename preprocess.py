@@ -18,6 +18,7 @@ _NLTK_PACKAGES: tuple[tuple[str, str], ...] = (
     ("corpora/wordnet", "wordnet"),
     ("corpora/omw-1.4", "omw-1.4"),
     ("corpora/stopwords", "stopwords"),
+    ("corpora/wordnet_ic", "wordnet_ic"),
     ("taggers/averaged_perceptron_tagger", "averaged_perceptron_tagger"),
     ("taggers/averaged_perceptron_tagger_eng", "averaged_perceptron_tagger_eng"),
 )

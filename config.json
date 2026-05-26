@@ -1,4 +1,27 @@
 {
+  "classical": {
+    "penalties": {
+      "antonym": 0.3,
+      "negation": 0.3,
+      "order": 0.5
+    },
+    "thresholds": {
+      "high": 0.74,
+      "low": 0.52
+    },
+    "weights": {
+      "semantic": {
+        "soft_overlap": 0.5,
+        "wordnet": 0.5
+      },
+      "surface": {
+        "jaccard": 0.25,
+        "ngram": 0.25,
+        "order": 0.25,
+        "tfidf": 0.25
+      }
+    }
+  },
   "gpt": {
     "thresholds": {
       "high": 0.8200000000000001,
