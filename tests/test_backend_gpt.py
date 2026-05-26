@@ -184,6 +184,7 @@ def test_thresholds_are_gpt_constants(monkeypatch, tmp_path: Path) -> None:
 
 def test_default_model_is_text_embedding_3_small(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "fake-key")
+    monkeypatch.delenv("GPT_MODEL", raising=False)
     b = GptBackend(corpus=["x"], cache_path=tmp_path / "c.json")
     assert b._model == "text-embedding-3-small"
     assert GPT_DEFAULT_MODEL == "text-embedding-3-small"

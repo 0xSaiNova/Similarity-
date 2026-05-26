@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 
 from backends.base import Backend
-from backends.use import clamp_unit, cosine
+from backends.embedding_utils import clamp_unit, cosine
 from combiner import load_backend_thresholds
 
 GPT_DEFAULT_MODEL: str = "text-embedding-3-small"
