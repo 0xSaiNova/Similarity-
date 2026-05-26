@@ -20,6 +20,23 @@ EMBEDDING_DEFAULTS: dict[str, tuple[float, float]] = {
     "gpt": (GPT_LOW, GPT_HIGH),
 }
 
+# Categories where cosine over text embeddings cannot help no matter the threshold:
+# antonym pairs (scale up / scale down) and negation pairs (does X / does not X) and
+# role swaps (producer pushes to consumer / consumer pushes to producer) all sit at
+# 0.75-0.95 cosine because they share most surface tokens, while genuine matches
+# sit in roughly the same range. A single low/high cut cannot separate them, so
+# including these pairs in the calibration pulls the optimum toward thresholds
+# that hurt the cases the cut CAN separate. Exclude them when fitting.
+ADVERSARIAL_CATEGORIES: tuple[str, ...] = (
+    "antonym", "negation", "high_overlap_different_meaning",
+)
+
+
+def naturalistic_subset(gold: Sequence[GoldPair]) -> list[GoldPair]:
+    """Return gold pairs whose category is not in ADVERSARIAL_CATEGORIES."""
+    drop = set(ADVERSARIAL_CATEGORIES)
+    return [p for p in gold if p.category not in drop]
+
 
 @dataclass(frozen=True)
 class BackendScoredPair:

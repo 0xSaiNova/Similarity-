@@ -164,3 +164,68 @@ def test_backend_match_result_is_frozen_dataclass() -> None:
     r = BackendMatchResult(candidate="x", score=0.5, label="PARTIAL", signals=None)
     with pytest.raises(Exception):
         r.score = 0.9  # type: ignore[misc]
+
+
+def test_use_backend_reads_thresholds_from_config_block(tmp_path) -> None:
+    import json
+
+    from backends.use import USE_HIGH, USE_LOW, UseBackend
+    cfg = tmp_path / "config.json"
+    cfg.write_text(json.dumps({"use": {"thresholds": {"low": 0.42, "high": 0.81}}}))
+    backend = UseBackend(CORPUS, config_path=cfg)
+    assert backend.thresholds == (0.42, 0.81)
+    # placeholder fallback only when block absent
+    backend_fallback = UseBackend(CORPUS, config_path=tmp_path / "absent.json")
+    assert backend_fallback.thresholds == (USE_LOW, USE_HIGH)
+
+
+def test_gpt_backend_reads_thresholds_from_config_block(tmp_path, monkeypatch) -> None:
+    import json
+
+    from backends.gpt import GPT_HIGH, GPT_LOW, GptBackend
+    monkeypatch.setenv("OPENAI_API_KEY", "fake-key")
+    cfg = tmp_path / "config.json"
+    cfg.write_text(json.dumps({"gpt": {"thresholds": {"low": 0.58, "high": 0.79}}}))
+    backend = GptBackend(CORPUS, cache_path=tmp_path / "cache.json", config_path=cfg)
+    assert backend.thresholds == (0.58, 0.79)
+    backend_fallback = GptBackend(
+        CORPUS, cache_path=tmp_path / "cache2.json", config_path=tmp_path / "absent.json",
+    )
+    assert backend_fallback.thresholds == (GPT_LOW, GPT_HIGH)
+
+
+def test_classical_backend_falls_back_to_defaults_when_no_config(tmp_path) -> None:
+    backend = ClassicalBackend(CORPUS, config_path=tmp_path / "absent.json")
+    assert backend.thresholds == (DEFAULT_THRESHOLDS["low"], DEFAULT_THRESHOLDS["high"])
+
+
+def test_classical_backend_loads_tuned_thresholds_from_classical_block(tmp_path) -> None:
+    import json
+
+    cfg = tmp_path / "config.json"
+    cfg.write_text(json.dumps({
+        "classical": {
+            "weights": DEFAULT_WEIGHTS,
+            "thresholds": {"low": 0.33, "high": 0.66},
+            "penalties": DEFAULT_PENALTIES,
+        },
+    }))
+    backend = ClassicalBackend(CORPUS, config_path=cfg)
+    assert backend.thresholds == (0.33, 0.66)
+
+
+def test_classical_block_alone_does_not_change_embedding_backends(tmp_path) -> None:
+    """Cross check: a tuned classical block must not flow into use/gpt thresholds."""
+    import json
+
+    from backends.use import USE_HIGH, USE_LOW, UseBackend
+    cfg = tmp_path / "config.json"
+    cfg.write_text(json.dumps({
+        "classical": {
+            "weights": DEFAULT_WEIGHTS,
+            "thresholds": {"low": 0.10, "high": 0.20},
+            "penalties": DEFAULT_PENALTIES,
+        },
+    }))
+    backend = UseBackend(CORPUS, config_path=cfg)
+    assert backend.thresholds == (USE_LOW, USE_HIGH)

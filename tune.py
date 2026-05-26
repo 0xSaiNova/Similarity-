@@ -22,9 +22,11 @@ from matcher import compute_signals
 from preprocess import build_phrase, detect_antonym_mismatch
 from signals import detect_order_mismatch
 from tune_backend import (
+    ADVERSARIAL_CATEGORIES,
     EMBEDDING_BACKENDS,
     EMBEDDING_DEFAULTS,
     cross_validate_backend_thresholds,
+    naturalistic_subset,
     score_gold_with_backend,
     search_backend_thresholds,
     write_backend_thresholds,
@@ -214,8 +216,11 @@ def _run_classical(gold: list[GoldPair]) -> None:
 
 def _run_embedding_backend(backend_name: str, gold: list[GoldPair]) -> None:
     default = EMBEDDING_DEFAULTS[backend_name]
-    print(f"=== {backend_name} threshold grid search, 5 fold CV ===")
-    scored = score_gold_with_backend(backend_name, gold)
+    subset = naturalistic_subset(gold)
+    excluded = sorted(set(ADVERSARIAL_CATEGORIES))
+    print(f"=== {backend_name} threshold grid search on naturalistic subset, 5 fold CV ===")
+    print(f"  full gold: {len(gold)}, naturalistic subset: {len(subset)}, excluded: {excluded}")
+    scored = score_gold_with_backend(backend_name, subset)
     tuned_cv, default_cv, tuned_per_label = cross_validate_backend_thresholds(
         scored, default, folds=CV_FOLDS, seed=SEED, step=GRID_STEP, min_gap=MIN_THRESHOLD_GAP,
     )
@@ -231,10 +236,12 @@ def _run_embedding_backend(backend_name: str, gold: list[GoldPair]) -> None:
         print(f"ADOPTED: tuned CV {tuned_cv:.3f} > default CV {default_cv:.3f}")
         print(f"In sample macro F1: {in_sample_macro:.3f}")
         print(f"Tuned thresholds: low={low:.3f} high={high:.3f}")
+        print(f"Placeholder thresholds: low={default[0]:.3f} high={default[1]:.3f}")
         print(f"{backend_name} block written to {CONFIG_PATH}")
     else:
-        print(f"REJECTED: tuned CV {tuned_cv:.3f} <= default CV {default_cv:.3f}")
-        print(f"{backend_name} block in {CONFIG_PATH} (if any) left untouched")
+        print(f"STOP: tuned CV {tuned_cv:.3f} <= default CV {default_cv:.3f}")
+        print(f"Surprise: placeholder beat or tied the grid search on the naturalistic subset.")
+        print(f"{backend_name} block in {CONFIG_PATH} (if any) left untouched; investigate before adopting.")
 
 
 def main(argv: Sequence[str] | None = None) -> None:
