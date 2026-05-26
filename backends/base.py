@@ -5,6 +5,8 @@ import abc
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from combiner import label_for
+
 
 @dataclass(frozen=True)
 class BackendMatchResult:
@@ -34,12 +36,7 @@ class Backend(abc.ABC):
 
     def label(self, score: float) -> str:
         """Default labeling: MATCH >= high, PARTIAL >= low, else NO_MATCH."""
-        low, high = self.thresholds
-        if score >= high:
-            return "MATCH"
-        if score >= low:
-            return "PARTIAL"
-        return "NO_MATCH"
+        return label_for(score, *self.thresholds)
 
     def score_with_explain(
         self, phrase_a: str, phrase_b: str,

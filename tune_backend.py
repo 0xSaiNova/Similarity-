@@ -11,8 +11,8 @@ from sklearn.model_selection import StratifiedKFold
 from backends import get_backend
 from backends.gpt import GPT_HIGH, GPT_LOW
 from backends.use import USE_HIGH, USE_LOW
-from combiner import write_backend_block
-from evaluate import LABELS, GoldPair, PairResult, _per_label_metrics
+from combiner import label_for, write_backend_block
+from evaluate import LABELS, GoldPair, PairResult, _per_label_metrics, macro_f1
 
 EMBEDDING_BACKENDS: tuple[str, ...] = ("use", "gpt")
 EMBEDDING_DEFAULTS: dict[str, tuple[float, float]] = {
@@ -57,14 +57,6 @@ def score_gold_with_backend(
     ]
 
 
-def _label_from_thresholds(score: float, low: float, high: float) -> str:
-    if score >= high:
-        return "MATCH"
-    if score >= low:
-        return "PARTIAL"
-    return "NO_MATCH"
-
-
 def _backend_predict(
     scored: Sequence[BackendScoredPair], low: float, high: float,
 ) -> list[PairResult]:
@@ -72,16 +64,11 @@ def _backend_predict(
         PairResult(
             pair_id=s.pair.id, category=s.pair.category, phenomenon=s.pair.phenomenon,
             predicted_score=s.score, gold_score=s.pair.gold_score,
-            predicted_label=_label_from_thresholds(s.score, low, high),
+            predicted_label=label_for(s.score, low, high),
             gold_label=s.pair.label,
         )
         for s in scored
     ]
-
-
-def _macro_f1(results: list[PairResult]) -> float:
-    metrics = _per_label_metrics(results)
-    return sum(m.f1 for m in metrics.values()) / len(metrics)
 
 
 def search_backend_thresholds(
@@ -98,7 +85,8 @@ def search_backend_thresholds(
         for high in axis:
             if high - low < min_gap:
                 continue
-            f1 = _macro_f1(_backend_predict(scored, float(low), float(high)))
+            metrics = _per_label_metrics(_backend_predict(scored, float(low), float(high)))
+            f1 = macro_f1(metrics)
             if f1 > best_f1:
                 best_f1 = f1
                 best_low, best_high = float(low), float(high)
@@ -125,8 +113,8 @@ def cross_validate_backend_thresholds(
         _, (low, high) = search_backend_thresholds(train, step=step, min_gap=min_gap)
         tuned_metrics = _per_label_metrics(_backend_predict(test, low, high))
         default_metrics = _per_label_metrics(_backend_predict(test, default[0], default[1]))
-        tuned_macros.append(sum(m.f1 for m in tuned_metrics.values()) / len(tuned_metrics))
-        default_macros.append(sum(m.f1 for m in default_metrics.values()) / len(default_metrics))
+        tuned_macros.append(macro_f1(tuned_metrics))
+        default_macros.append(macro_f1(default_metrics))
         for label, m in tuned_metrics.items():
             fold_label_f1[label].append(m.f1)
     tuned_mean = sum(tuned_macros) / len(tuned_macros)

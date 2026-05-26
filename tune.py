@@ -16,7 +16,7 @@ from combiner import (
     combine,
     write_backend_block,
 )
-from evaluate import LABELS, GoldPair, PairResult, _per_label_metrics, load_gold
+from evaluate import LABELS, GoldPair, PairResult, _per_label_metrics, load_gold, macro_f1
 from index import PhraseIndex
 from matcher import compute_signals
 from preprocess import build_phrase, detect_antonym_mismatch
@@ -34,7 +34,6 @@ from tune_backend import (
 
 CV_FOLDS: int = 5
 SEED: int = 42
-N_PARAMS_THRESHOLDS: int = 2
 MIN_THRESHOLD_GAP: float = 0.05
 GRID_STEP: float = 0.02
 CONFIG_PATH: Path = Path(__file__).resolve().parent / "config.json"
@@ -87,27 +86,10 @@ def _predict(
     return out
 
 
-def macro_f1(metrics: dict[str, "object"]) -> float:
-    """Mean F1 across labels."""
-    return sum(m.f1 for m in metrics.values()) / len(metrics)
-
-
-def _macro_f1(results: list[PairResult]) -> float:
-    return macro_f1(_per_label_metrics(results))
-
-
 def params_to_thresholds(params: Sequence[float]) -> dict[str, float]:
     """Decode a 2-element params vector into {low, high} thresholds, ordered."""
     low, high = sorted((float(params[0]), float(params[1])))
     return {"low": low, "high": high}
-
-
-def threshold_objective(params: Sequence[float], cache: list[CachedPair]) -> float:
-    """Macro F1 with fixed default weights + penalties, only thresholds vary."""
-    thresholds = params_to_thresholds(params)
-    if thresholds["high"] - thresholds["low"] < MIN_THRESHOLD_GAP:
-        return 0.0
-    return _macro_f1(_predict(cache, DEFAULT_WEIGHTS, thresholds, DEFAULT_PENALTIES))
 
 
 def _grid_axis(step: float) -> np.ndarray:
@@ -127,11 +109,12 @@ def search_thresholds(
         for high in axis:
             if high - low < MIN_THRESHOLD_GAP:
                 continue
-            f1 = _macro_f1(_predict(
+            metrics = _per_label_metrics(_predict(
                 cache, DEFAULT_WEIGHTS,
                 {"low": float(low), "high": float(high)},
                 DEFAULT_PENALTIES,
             ))
+            f1 = macro_f1(metrics)
             if f1 > best_f1:
                 best_f1 = f1
                 best_low, best_high = float(low), float(high)

@@ -5,6 +5,8 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
+from backends.embedding_utils import clamp_unit
+
 SURFACE_SIGNALS: tuple[str, ...] = ("tfidf", "jaccard", "ngram", "order")
 SEMANTIC_SIGNALS: tuple[str, ...] = ("wordnet", "soft_overlap")
 SIGNAL_NAMES: tuple[str, ...] = SURFACE_SIGNALS + SEMANTIC_SIGNALS
@@ -17,11 +19,11 @@ DEFAULT_THRESHOLDS: dict[str, float] = {"low": 0.4, "high": 0.7}
 DEFAULT_PENALTIES: dict[str, float] = {"negation": 0.3, "antonym": 0.3, "order": 0.5}
 
 
-def label_for(score: float, thresholds: dict[str, float]) -> str:
-    """Map a score to MATCH / PARTIAL / NO_MATCH using the provided thresholds."""
-    if score >= thresholds["high"]:
+def label_for(score: float, low: float, high: float) -> str:
+    """Map a score to MATCH / PARTIAL / NO_MATCH using (low, high) thresholds."""
+    if score >= high:
         return "MATCH"
-    if score >= thresholds["low"]:
+    if score >= low:
         return "PARTIAL"
     return "NO_MATCH"
 
@@ -48,8 +50,8 @@ def combine(
         score *= p["antonym"]
     if order_mismatch:
         score *= p["order"]
-    score = max(0.0, min(1.0, score))
-    return score, label_for(score, t)
+    score = clamp_unit(score)
+    return score, label_for(score, t["low"], t["high"])
 
 
 WEIGHT_SUM_TOL: float = 1e-6

@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from backends.base import Backend
-from combiner import combine, label_for, load_config
+from combiner import combine, load_config
 from index import PhraseIndex
 from matcher import compute_signals
 from preprocess import build_phrase, detect_antonym_mismatch
@@ -51,6 +51,3 @@ class ClassicalBackend(Backend):
     @property
     def thresholds(self) -> tuple[float, float]:
         return self._thresholds_dict["low"], self._thresholds_dict["high"]
-
-    def label(self, score: float) -> str:
-        return label_for(score, self._thresholds_dict)

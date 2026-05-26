@@ -6,6 +6,7 @@ from functools import lru_cache
 
 from nltk.corpus import wordnet
 
+from backends.embedding_utils import clamp_unit
 from preprocess import ensure_nltk_data
 
 # POS groups: nouns and verbs use Lin similarity (IC-weighted; collapses unrelated
@@ -41,7 +42,7 @@ def _pair_score(sa, sb, pos: str, ic) -> float:
         score = sa.wup_similarity(sb)
     if score is None:
         return 0.0
-    return min(1.0, max(0.0, float(score)))
+    return clamp_unit(float(score))
 
 
 @lru_cache(maxsize=200000)

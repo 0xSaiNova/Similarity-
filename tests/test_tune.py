@@ -8,14 +8,11 @@ import pytest
 from combiner import DEFAULT_PENALTIES, DEFAULT_THRESHOLDS, DEFAULT_WEIGHTS, load_config
 from evaluate import load_gold
 from tune import (
-    MIN_THRESHOLD_GAP,
-    N_PARAMS_THRESHOLDS,
     cache_features,
     cross_validate_thresholds,
     params_to_thresholds,
     search_thresholds,
     should_adopt,
-    threshold_objective,
     write_config,
 )
 
@@ -34,16 +31,6 @@ def test_params_to_thresholds_orders() -> None:
     assert out["high"] == pytest.approx(0.8)
 
 
-def test_threshold_objective_returns_valid_macro_f1(small_cache) -> None:
-    f1 = threshold_objective([0.4, 0.7], small_cache)
-    assert 0.0 <= f1 <= 1.0
-
-
-def test_threshold_objective_collapses_when_too_close(small_cache) -> None:
-    params = [0.5, 0.5 + MIN_THRESHOLD_GAP / 2]
-    assert threshold_objective(params, small_cache) == 0.0
-
-
 def test_write_config_roundtrips(tmp_path: Path) -> None:
     path = tmp_path / "config.json"
     write_config(DEFAULT_WEIGHTS, DEFAULT_THRESHOLDS, DEFAULT_PENALTIES, path)
@@ -55,7 +42,7 @@ def test_write_config_roundtrips(tmp_path: Path) -> None:
 
 def test_search_thresholds_returns_2_params_in_unit_interval(small_cache) -> None:
     _, params = search_thresholds(small_cache, step=0.1)
-    assert len(params) == N_PARAMS_THRESHOLDS
+    assert len(params) == 2
     thresholds = params_to_thresholds(params)
     assert 0.0 <= thresholds["low"] < thresholds["high"] <= 1.0
 
@@ -68,7 +55,11 @@ def test_search_thresholds_is_deterministic(small_cache) -> None:
 
 
 def test_tuned_thresholds_in_sample_beat_or_equal_default(small_cache) -> None:
-    default = threshold_objective([0.4, 0.7], small_cache)
+    from evaluate import _per_label_metrics, macro_f1
+    from tune import _predict
+    default = macro_f1(_per_label_metrics(_predict(
+        small_cache, DEFAULT_WEIGHTS, DEFAULT_THRESHOLDS, DEFAULT_PENALTIES,
+    )))
     tuned, _ = search_thresholds(small_cache, step=0.1)
     assert tuned >= default
 
