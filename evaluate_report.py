@@ -72,7 +72,7 @@ def _fmt_metric(value: float, width: int = 9) -> str:
 def _gather_categories(reports: Mapping[str, Report | str]) -> list[str]:
     seen: set[str] = set()
     for entry in reports.values():
-        if isinstance(entry, Report):
+        if not isinstance(entry, str):
             seen.update(entry.per_category)
     return sorted(seen)
 
@@ -88,7 +88,7 @@ def format_comparison(reports: Mapping[str, Report | str]) -> str:
         row_cells: list[str] = []
         for n in names:
             entry = reports[n]
-            if isinstance(entry, Report):
+            if not isinstance(entry, str):
                 value = (
                     entry.binary.f1 if metric == "binary_f1"
                     else entry.roc_auc if metric == "roc_auc"
@@ -99,15 +99,12 @@ def format_comparison(reports: Mapping[str, Report | str]) -> str:
                 row_cells.append(f"{'unavail':>12}")
         lines.append(f"  {metric:<16}" + "".join(row_cells))
     lines.append("")
-    for entry in reports.values():
-        if isinstance(entry, str):
-            continue
+    if any(not isinstance(entry, str) for entry in reports.values()):
         total_line = f"  {'n pairs':<16}" + "".join(
-            f"{e.total:>12}" if isinstance(e, Report) else f"{'unavail':>12}"
+            f"{e.total:>12}" if not isinstance(e, str) else f"{'unavail':>12}"
             for e in reports.values()
         )
         lines.append(total_line)
-        break
     for unavail_name, entry in reports.items():
         if isinstance(entry, str):
             lines.append(f"  {unavail_name}: {entry}")
@@ -125,7 +122,7 @@ def format_comparison(reports: Mapping[str, Report | str]) -> str:
         for category in categories:
             counts = [
                 str(entry.per_category[category].count)
-                if isinstance(entry, Report) and category in entry.per_category
+                if not isinstance(entry, str) and category in entry.per_category
                 else "0"
                 for entry in reports.values()
             ]
@@ -133,7 +130,7 @@ def format_comparison(reports: Mapping[str, Report | str]) -> str:
             row = f"  {category:<32} {n_col:>4}"
             for n in names:
                 entry = reports[n]
-                if isinstance(entry, Report) and category in entry.per_category:
+                if not isinstance(entry, str) and category in entry.per_category:
                     row += _fmt_metric(getattr(entry.per_category[category], attr), width=12)
                 else:
                     row += f"{'unavail':>12}"
